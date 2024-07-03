@@ -1,2 +1,0 @@
-Number of significant surrogate variables is:  3 
-Iteration (out of 5 ):1  2  3  4  5  
