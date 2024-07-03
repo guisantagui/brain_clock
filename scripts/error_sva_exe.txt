@@ -1,0 +1,28 @@
+Loading required package: BiocManager
+Failed with error:  ‘object 'quietly' not found’
+trying URL 'http://cran.us.r-project.org/src/contrib/BiocManager_1.30.23.tar.gz'
+Content type 'application/x-gzip' length 589753 bytes (575 KB)
+==================================================
+downloaded 575 KB
+
+* installing *source* package ‘BiocManager’ ...
+** package ‘BiocManager’ successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (BiocManager)
+
+The downloaded source packages are in
+	‘/tmp/Rtmpbue2NO/downloaded_packages’
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+Error in sprintf("%s%s_svobj.rds") : too few arguments
+Calls: saveRDS -> sprintf
+Execution halted

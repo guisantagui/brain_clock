@@ -1,0 +1,117 @@
+################################################################################
+#                                                                              #
+# Script for running SVA and detemining the surrogate variables                #
+#                                                                              #
+################################################################################
+
+if(!require(BiocManager, quietly == T)){
+        install.packages("BiocManager", repos='http://cran.us.r-project.org')
+}
+if(!require(argparser, quietly = T)){
+        install.packages("argparser", repos='http://cran.us.r-project.org')
+}
+library(argparser)
+if(!require("limma", quietly = T)){
+        BiocManager::install("limma", update = F)
+}
+library(limma)
+if(!require(sva, quietly = T)) BiocManager::install("sva", update = F)
+library(sva)
+
+
+
+# Terminal argument parser
+################################################################################
+parser <- arg_parser("Run SVA.")
+
+parser <- add_argument(parser = parser,
+                       arg = c("input",
+                               "--mod",
+                               "--mod0",
+                               "--saveSVrem",
+                               "--outDir"),
+                       help = c("Input transcriptomic dataset, features in columns, samples rows. CSV.",
+                                "Full model RDS object.",
+                                "Null model RDS object.",
+                                "If a csv file with the SVs regressed out should be created",
+                                "Output directory where placing the results."),
+                       flag = c(F, F, F, T, F))
+
+parsed <- parse_args(parser)
+
+# Functions
+################################################################################
+
+# Read csv faster
+readCsvFast <- function(f){
+        df <- data.frame(data.table::fread(f))
+        rownames(df) <- df$V1
+        df <- df[, colnames(df) != "V1"]
+        return(df)
+}
+
+# Directory stuff
+################################################################################
+dat <- parsed$input
+mod <- parsed$mod
+mod0 <- parsed$mod0
+saveSVrem <- parsed$saveSVrem
+outDir <- parsed$outDir
+
+outBaseName <- gsub(".csv", "", basename(parsed$input))
+suffixMod <- strsplit(gsub(".rds", "", basename(mod)), split = "_")[[1]]
+suffixMod <- suffixMod[length(suffixMod)]
+
+# Load data
+################################################################################
+
+mod <- readRDS(mod)
+mod0 <- readRDS(mod0)
+dat <- readCsvFast(dat)
+
+# Run SVA
+################################################################################
+edata <- t(dat)
+
+n.sv = num.sv(edata, mod, method="leek")
+
+svobj = sva(edata,
+            mod,
+            mod0,
+            n.sv=n.sv)
+
+
+
+outName <- sprintf("%s%s_%s_svobj.rds",
+                   outDir,
+                   outBaseName,
+                   suffixMod)
+
+saveRDS(svobj, file = outName)
+print(sprintf("%s saved at %s",
+              basename(outName),
+              dirname(outName)))
+
+# Remove effect of the surrogate variables from the input matrix and save it
+################################################################################
+
+if(saveSVrem){
+        # Create new model matrix with only age, as it is the only covariate we want to
+        # preserve.
+        mod4adj <- model.matrix(~age_death,
+                                data = data.frame(age_death = mod[, "age_death"]))
+
+        edata_adj <- removeBatchEffect(edata, covariates = svobj$sv, design = mod4adj)
+
+        edata_adj <- t(edata_adj)
+
+        outNameAdj <- sprintf("%s%s_%s_svaAdj.csv",
+                              outDir,
+                              outBaseName,
+                              suffixMod)
+
+        write.csv(edata_adj, file = outNameAdj)
+        print(sprintf("%s saved in %s",
+                      basename(outNameAdj),
+                      dirname(outNameAdj)))
+}

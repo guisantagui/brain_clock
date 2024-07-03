@@ -1,0 +1,366 @@
+Warning message:
+`aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Warning message:
+`aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Bioconductor version '3.18' is out-of-date; the current release version '3.19'
+  is available with R version '4.4'; see https://bioconductor.org/install
+Loading required package: BiocManager
+Failed with error:  ‘object 'quietly' not found’
+Loading required package: BiocManager
+Failed with error:  ‘object 'quietly' not found’
+Bioconductor version '3.18' is out-of-date; the current release version '3.19'
+  is available with R version '4.4'; see https://bioconductor.org/install
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+trying URL 'http://cran.us.r-project.org/src/contrib/BiocManager_1.30.23.tar.gz'
+trying URL 'http://cran.us.r-project.org/src/contrib/BiocManager_1.30.23.tar.gz'
+Content type 'application/x-gzip' length 589753 bytes (575 KB)
+========Content type 'application/x-gzip' length 589753 bytes (575 KB)
+==================================================
+downloaded 575 KB
+
+==========================================
+downloaded 575 KB
+
+* installing *source* package ‘BiocManager’ ...
+** package ‘BiocManager’ successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+ERROR: failed to lock directory ‘/mnt/aiongpfs/users/gsantamaria/miniconda3/envs/r-4.3.1/lib/R/library’ for modifying
+Try removing ‘/mnt/aiongpfs/users/gsantamaria/miniconda3/envs/r-4.3.1/lib/R/library/00LOCK-BiocManager’
+
+The downloaded source packages are in
+	‘/tmp/RtmpNIF8d8/downloaded_packages’
+Warning message:
+In install.packages("BiocManager", repos = "http://cran.us.r-project.org") :
+  installation of package ‘BiocManager’ had non-zero exit status
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+** testing if installed package keeps a record of temporary installation path
+* DONE (BiocManager)
+
+The downloaded source packages are in
+	‘/tmp/RtmpAWzueI/downloaded_packages’
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+Using the 'mean only' version of ComBat
+Found8batches
+Note: one batch has only one sample, setting mean.only=TRUE
+Adjusting for1covariate(s) or covariate level(s)
+Standardizing Data across genes
+Fitting L/S model and finding priors
+Finding parametric adjustments
+Adjusting the Data
+
+Loading required package: BiocManager
+Failed with error:  ‘object 'quietly' not found’
+Loading required package: BiocManager
+Failed with error:  ‘object 'quietly' not found’
+Loading required package: BiocManager
+Failed with error:  ‘object 'quietly' not found’
+trying URL 'http://cran.us.r-project.org/src/contrib/BiocManager_1.30.23.tar.gz'
+trying URL 'http://cran.us.r-project.org/src/contrib/BiocManager_1.30.23.tar.gz'
+trying URL 'http://cran.us.r-project.org/src/contrib/BiocManager_1.30.23.tar.gz'
+Content type 'application/x-gzip' length 589753 bytes (575 KB)
+Content type 'application/x-gzip' length 589753 bytes (575 KB)
+Content type 'application/x-gzip' length 589753 bytes (575 KB)
+=======================================================================================================================
+downloaded 575 KB
+
+=============
+downloaded 575 KB
+
+==================
+downloaded 575 KB
+
+* installing *source* package ‘BiocManager’ ...
+** package ‘BiocManager’ successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+ERROR: failed to lock directory ‘/mnt/aiongpfs/users/gsantamaria/miniconda3/envs/r-4.3.1/lib/R/library’ for modifying
+Try removing ‘/mnt/aiongpfs/users/gsantamaria/miniconda3/envs/r-4.3.1/lib/R/library/00LOCK-BiocManager’
+** inst
+** byte-compile and prepare package for lazy loading
+
+The downloaded source packages are in
+	‘/tmp/RtmpR4Zlmo/downloaded_packages’
+Warning message:
+In install.packages("BiocManager", repos = "http://cran.us.r-project.org") :
+  installation of package ‘BiocManager’ had non-zero exit status
+ERROR: failed to lock directory ‘/mnt/aiongpfs/users/gsantamaria/miniconda3/envs/r-4.3.1/lib/R/library’ for modifying
+Try removing ‘/mnt/aiongpfs/users/gsantamaria/miniconda3/envs/r-4.3.1/lib/R/library/00LOCK-BiocManager’
+
+The downloaded source packages are in
+	‘/tmp/RtmpApcZE0/downloaded_packages’
+Warning message:
+In install.packages("BiocManager", repos = "http://cran.us.r-project.org") :
+  installation of package ‘BiocManager’ had non-zero exit status
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (BiocManager)
+
+The downloaded source packages are in
+	‘/tmp/Rtmp81tSMn/downloaded_packages’
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+Warning message:
+In sva(edata, mod, mod0, n.sv = n.sv) :
+  Returning zero surrogate variables as requested
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+Error in `geom_point()`:
+! Problem while computing aesthetics.
+ℹ Error occurred in the 1st layer.
+Caused by error:
+! object 'SV_2' not found
+Backtrace:
+     ▆
+  1. ├─global plotAllSVs(svObj = svaObj, dat = dat, metDat = metDat)
+  2. │ └─ggpubr::ggarrange(...)
+  3. │   └─ggpubr::get_legend(plots)
+  4. │     └─ggpubr:::.get_legend(p[[i]], position = position)
+  5. │       ├─ggplot2::ggplot_gtable(ggplot_build(p))
+  6. │       │ └─ggplot2:::attach_plot_env(data$plot$plot_env)
+  7. │       │   └─base::options(ggplot2_plot_env = env)
+  8. │       ├─ggplot2::ggplot_build(p)
+  9. │       └─ggplot2:::ggplot_build.ggplot(p)
+ 10. │         └─ggplot2:::by_layer(...)
+ 11. │           ├─rlang::try_fetch(...)
+ 12. │           │ ├─base::tryCatch(...)
+ 13. │           │ │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14. │           │ │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15. │           │ │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16. │           │ └─base::withCallingHandlers(...)
+ 17. │           └─ggplot2 (local) f(l = layers[[i]], d = data[[i]])
+ 18. │             └─l$compute_aesthetics(d, plot)
+ 19. │               └─ggplot2 (local) compute_aesthetics(..., self = self)
+ 20. │                 └─ggplot2:::scales_add_defaults(...)
+ 21. │                   └─base::lapply(aesthetics[new_aesthetics], eval_tidy, data = data)
+ 22. │                     └─rlang (local) FUN(X[[i]], ...)
+ 23. └─base::.handleSimpleError(`<fn>`, "object 'SV_2' not found", base::quote(NULL))
+ 24.   └─rlang (local) h(simpleError(msg, call))
+ 25.     └─handlers[[1L]](cnd)
+ 26.       └─cli::cli_abort(...)
+ 27.         └─rlang::abort(...)
+Warning messages:
+1: `aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+2: The `size` argument of `element_rect()` is deprecated as of ggplot2 3.4.0.
+ℹ Please use the `linewidth` argument instead. 
+Execution halted
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+Error in dimnames(x) <- dn : 
+  length of 'dimnames' [2] not equal to array extent
+Calls: plotAllSVs -> colnames<-
+Execution halted
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+Warning messages:
+1: `aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+2: The `size` argument of `element_rect()` is deprecated as of ggplot2 3.4.0.
+ℹ Please use the `linewidth` argument instead. 
+Warning message:
+`aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Warning message:
+`aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Warning message:
+`aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Warning message:
+`aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Loading required package: BiocManager
+Failed with error:  ‘object 'quietly' not found’
+trying URL 'http://cran.us.r-project.org/src/contrib/BiocManager_1.30.23.tar.gz'
+Content type 'application/x-gzip' length 589753 bytes (575 KB)
+==================================================
+downloaded 575 KB
+
+* installing *source* package ‘BiocManager’ ...
+** package ‘BiocManager’ successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (BiocManager)
+
+The downloaded source packages are in
+	‘/tmp/Rtmp9RUGRZ/downloaded_packages’
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+Warning messages:
+1: `aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+2: The `size` argument of `element_rect()` is deprecated as of ggplot2 3.4.0.
+ℹ Please use the `linewidth` argument instead. 
+Warning message:
+`aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Loading required package: BiocManager
+Failed with error:  ‘object 'quietly' not found’
+trying URL 'http://cran.us.r-project.org/src/contrib/BiocManager_1.30.23.tar.gz'
+Content type 'application/x-gzip' length 589753 bytes (575 KB)
+==================================================
+downloaded 575 KB
+
+* installing *source* package ‘BiocManager’ ...
+** package ‘BiocManager’ successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (BiocManager)
+
+The downloaded source packages are in
+	‘/tmp/RtmpehUuHd/downloaded_packages’
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+This is mgcv 1.9-0. For overview type 'help("mgcv-package")'.
+Error in `geom_point()`:
+! Problem while computing aesthetics.
+ℹ Error occurred in the 1st layer.
+Caused by error:
+! object 'SV_2' not found
+Backtrace:
+     ▆
+  1. ├─global plotAllSVs(svObj = svaObj, dat = dat, metDat = metDat)
+  2. │ └─ggpubr::ggarrange(...)
+  3. │   └─ggpubr::get_legend(plots)
+  4. │     └─ggpubr:::.get_legend(p[[i]], position = position)
+  5. │       ├─ggplot2::ggplot_gtable(ggplot_build(p))
+  6. │       │ └─ggplot2:::attach_plot_env(data$plot$plot_env)
+  7. │       │   └─base::options(ggplot2_plot_env = env)
+  8. │       ├─ggplot2::ggplot_build(p)
+  9. │       └─ggplot2:::ggplot_build.ggplot(p)
+ 10. │         └─ggplot2:::by_layer(...)
+ 11. │           ├─rlang::try_fetch(...)
+ 12. │           │ ├─base::tryCatch(...)
+ 13. │           │ │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14. │           │ │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15. │           │ │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16. │           │ └─base::withCallingHandlers(...)
+ 17. │           └─ggplot2 (local) f(l = layers[[i]], d = data[[i]])
+ 18. │             └─l$compute_aesthetics(d, plot)
+ 19. │               └─ggplot2 (local) compute_aesthetics(..., self = self)
+ 20. │                 └─ggplot2:::scales_add_defaults(...)
+ 21. │                   └─base::lapply(aesthetics[new_aesthetics], eval_tidy, data = data)
+ 22. │                     └─rlang (local) FUN(X[[i]], ...)
+ 23. └─base::.handleSimpleError(`<fn>`, "object 'SV_2' not found", base::quote(NULL))
+ 24.   └─rlang (local) h(simpleError(msg, call))
+ 25.     └─handlers[[1L]](cnd)
+ 26.       └─cli::cli_abort(...)
+ 27.         └─rlang::abort(...)
+Warning messages:
+1: `aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information. 
+2: The `size` argument of `element_rect()` is deprecated as of ggplot2 3.4.0.
+ℹ Please use the `linewidth` argument instead. 
+Execution halted
