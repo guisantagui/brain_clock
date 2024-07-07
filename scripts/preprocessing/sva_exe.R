@@ -4,7 +4,7 @@
 #                                                                              #
 ################################################################################
 
-if(!require(BiocManager, quietly == T)){
+if(!require(BiocManager, quietly = T)){
         install.packages("BiocManager", repos='http://cran.us.r-project.org')
 }
 if(!require(argparser, quietly = T)){
