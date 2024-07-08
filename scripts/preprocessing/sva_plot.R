@@ -59,6 +59,9 @@ metDat <- read.csv(metDatFile, row.names = 1)
 
 # Plot the surrogate variables
 ################################################################################
+
+# Given a SV dataframe and the variable in X and Y axes, plots a scatterplot
+# of the SVs indicated by user.
 plotSVs <- function(df, x, y){
         plt <- ggplot(data = df, mapping = aes_string(x = x,
                                                       y = y,
@@ -73,13 +76,39 @@ plotSVs <- function(df, x, y){
         return(plt)
 }
 
+# Plots boxplot with colored batches, for cases where only one SV is obtained
+plotSVs_1Dim <- function(svObj, dat, metDat){
+        svMat <- svObj$sv
+        rownames(svMat) <- rownames(dat)
+        colnames(svMat) <- paste("SV", as.character(1:ncol(svMat)), sep = "_")
+        svMat <- data.frame(svMat)
+        svMat$batch <- metDat$substudy[match(rownames(svMat),
+                                             make.names(metDat$specimenID))]
+        svMat$samps <- rep("samples", nrow(svMat))
+        plt <- ggplot(data = svMat, mapping = aes(x = samps,
+                                                  y = SV1,
+                                                  col = batch)) +
+                geom_point() +
+                geom_jitter() +
+                theme(title = ggtext::element_markdown(),
+                      axis.title.y = ggtext::element_markdown(),
+                      axis.title.x = element_blank(),
+                      panel.background = element_blank(),
+                      panel.border = element_rect(colour = "black", fill=NA, size=1),
+                      panel.grid.major = element_line(colour = "#d4d4d4"),
+                      legend.position = "right")
+        return(plt)
+}
+
+# Plots all SVs combinations in sv object obtained by SVA in multi-scoreplot
 plotAllSVs <- function(svObj, dat, metDat){
         svMat <- svObj$sv
         rownames(svMat) <- rownames(dat)
         colnames(svMat) <- paste("SV", as.character(1:ncol(svMat)), sep = "_")
         svMat <- data.frame(svMat)
         
-        svMat$batch <- metDat$substudy[match(rownames(svMat), make.names(metDat$specimenID))]
+        svMat$batch <- metDat$substudy[match(rownames(svMat),
+                                             make.names(metDat$specimenID))]
         plotList <- list()
         for(j in 2:(ncol(svMat) - 1)){
                 for(i in 1:(ncol(svMat) - 2)){
@@ -112,5 +141,15 @@ plotAllSVs <- function(svObj, dat, metDat){
         return(multPlot)
 }
 
-allSVs <- plotAllSVs(svObj = svaObj, dat = dat, metDat = metDat)
-ggsave(plot = allSVs, filename = outName, width = 10, height = 10)
+if(ncol(svaObj$sv) > 1){
+        allSVs <- plotAllSVs(svObj = svaObj, dat = dat, metDat = metDat)
+        ggsave(plot = allSVs, filename = outName, width = 10, height = 10)
+        print(sprintf("%s saved at %s.", basename(outName), dirname(outName)))
+}else if(ncol(svaObj$sv) == 1){
+        allSVs <- plotSVs_1Dim(svObj = svaObj, dat = dat, metDat = metDat)
+        ggsave(plot = allSVs, filename = outName, width = 10, height = 10)
+        print(sprintf("%s saved at %s.", basename(outName), dirname(outName)))
+}else{
+        print(sprintf("No surrogate variables where detected in %s dataset, so no plot was generated",
+              basename(datFile)))
+}

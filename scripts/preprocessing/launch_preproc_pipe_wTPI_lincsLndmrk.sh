@@ -10,9 +10,9 @@
 #SBATCH -c 8
 #SBATCH --time=00-02:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_preproc_pipe.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_preproc_pipe_lincsLndmrk.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_preproc_pipe.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_preproc_pipe_lincsLndmrk.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p batch
 #SBATCH --qos=normal

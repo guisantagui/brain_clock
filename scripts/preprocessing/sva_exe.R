@@ -58,7 +58,7 @@ mod0 <- parsed$mod0
 saveSVrem <- parsed$saveSVrem
 outDir <- parsed$outDir
 
-outBaseName <- gsub(".csv", "", basename(parsed$input))
+outBaseName <- gsub(".csv", "", basename(dat))
 suffixMod <- strsplit(gsub(".rds", "", basename(mod)), split = "_")[[1]]
 suffixMod <- suffixMod[length(suffixMod)]
 
@@ -74,6 +74,9 @@ dat <- readCsvFast(dat)
 edata <- t(dat)
 
 n.sv = num.sv(edata, mod, method="leek")
+
+print(sprintf("Number of surrogate variables detected: %s.",
+              as.character(n.sv)))
 
 svobj = sva(edata,
             mod,
