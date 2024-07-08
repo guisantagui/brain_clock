@@ -5,6 +5,11 @@
 # neurodegenerated subjects                                                    #
 #                                                                              #
 ################################################################################
+
+if(!require(argparser, quietly = T)){
+        install.packages("argparser", repos='http://cran.us.r-project.org')
+}
+library(argparser)
 if(!require(limma, quietly = T)) BiocManager::install("limma", update = F)
 if(!require("h2o", quietly = T)){
         install.packages("h2o",
@@ -12,35 +17,55 @@ if(!require("h2o", quietly = T)){
                          repos="https://h2o-release.s3.amazonaws.com/h2o/rel-3.46.0/2/R")
 }
 library(h2o)
-if(!require("ggplot2")) install.packages("ggplot2", repos='https://pbil.univ-lyon1.fr/CRAN/')
+if(!require("ggplot2")) install.packages("ggplot2",
+                                         repos='https://pbil.univ-lyon1.fr/CRAN/')
 library(ggplot2)
-if(!require("ggpubr")) install.packages("ggpubr", repos='https://pbil.univ-lyon1.fr/CRAN/')
+if(!require("ggpubr")) install.packages("ggpubr",
+                                        repos='https://pbil.univ-lyon1.fr/CRAN/')
 library(ggpubr)
+
+# Terminal argument parser
+################################################################################
+parser <- arg_parser("Train the GLM on transformed age and assess performance.")
+
+parser <- add_argument(parser = parser,
+                       arg = c("input",
+                               "--metDat",
+                               "--ageTransPars",
+                               "--alpha",
+                               "--mem",
+                               "--braakThrshld",
+                               "--outDir"),
+                       help = c("Input transcriptomic dataset, features columns, samples rows. CSV.",
+                                "Metadata file (including ages).",
+                                "RDS file with Gompertz-Makeham parameters for transformation.",
+                                "Alpha value for the elastic net.",
+                                "Memory to allocate to h2o instance.",
+                                "Braak score threshold for considering samples neurodegenerated.",
+                                "Output directory where placing the results."),
+                       flag = c(F, F, F, F, F, F, F))
+
+parsed <- parse_args(parser)
 
 # Directory stuff
 ################################################################################
 
-geneInfoFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/combined_geneInfo_wTBI.csv" # gene information file
-metDatFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/combined_metDat_wTBI.csv" # Integrated metadata file
-ageTransParFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/GompertzMakehamParameters.rds" # rds object with the age transformation parameters
-dataFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/preprocessing/combined_TPMs_wTBI_preproc_log10_noCerebell_combat_pmiAgeAdj_onlyAge_svaAdj.csv" # Preprocessed RNAseq dataset
-dataFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/preprocessing/combined_TPMs_wTBI_preproc_log10_noCerebell_onlyAge_svaAdj.csv" # Preprocessed RNAseq dataset
-#dataFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/preprocessing/combined_postMergeTPMs_preproc_log10_noCerebell_combat_pmiAgeAdj_onlyAge_svaAdj.csv"
-modelFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/models/wTBI_allGenes/modFuncsAlpha0.5.rds"
-badamModFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/models/badam_procs_wTBI/modFuncsAlpha0.5.rds"
-outDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/models/modAllGenes_modBadamSign_wTBI/" # output directory.
-alph <- 0.5 # Alpha parameter for the glm
-
+dataFile <- parsed$input
+metDatFile <- parsed$metDat
+ageTransParFile <- parsed$ageTransPars
+alph <- as.numeric(parsed$alpha)
+mem <- parsed$mem
+braakThrshld <- as.numeric(parsed$braakThrshld)
+outDir <- parsed$outDir
 
 if(!dir.exists(outDir)){
         dir.create(outDir, recursive = T)
 }
 
-# Functions for doing age transformation
+# Functions
 ################################################################################
 
-vals <- readRDS(ageTransParFile)
-vals <- round(vals,6) #Makes the parameters more readable with little loss of accuracy
+# Functions for doing age transformation
 test <- function(x){
         exp(-vals[3]*x-(vals[1]/vals[2])*(exp(vals[2]*x)-1))
 }
@@ -50,43 +75,137 @@ inverse = function (f, lower = 0, upper = 110) {
 }
 agetrans_inverse = function(lower,upper) inverse(test, lower, upper)
 
+# Clips transformed ages to be in a range that can be backtransformed to
+# chronological ages, transforms back to chronological age and returns the 
+# result.
+back2Age <- function(transAge){
+        transAge[transAge > 1] <- 1
+        transAge[transAge < 0] <- .000012
+        transAge2Age <- sapply(transAge,
+                               function(x) agetrans_inverse(0, 110)(x))
+        transAge2Age <- unlist(transAge2Age)
+        names(transAge2Age) <- gsub(".root", "", names(transAge2Age))
+        return(transAge2Age)
+}
+
+# Predict the age viven the expression matrix and the model
+predictAge <- function(model,
+                       predExpr
+){
+        predExpr <- predExpr[model@parameters$x,]
+        predAges <- c()
+        maxiter <- ceiling(ncol(predExpr)/1000)
+        for(i in 1:maxiter){
+                #i <- 1
+                from <- ((i-1)*1000+1)
+                to <- min(i*1000,ncol(predExpr))
+                
+                inp_h2o <- as.h2o(t(predExpr[,from:to]))
+                
+                pred <- h2o.predict(model,inp_h2o)
+                pred <- as.data.frame(pred)$predict
+                names(pred) <- colnames(predExpr)[from:to]
+                
+                predAges <- c(predAges,pred)
+        }
+        return(predAges)
+}
+
+# Given a vector of values, and the predicted values according to the model,
+# compute some metrics.
+getMetrics <- function(vals, pred){
+        mae <- sum(abs(vals - pred))/length(vals)
+        mse <- sum((vals - pred)^2)/length(vals)
+        rmse <- sqrt(mse)
+        mape <- (sum(abs((vals - pred)/vals))/length(vals))*100
+        r2 <- 1 - sum((vals - pred)^2)/sum((vals - mean(vals))^2)
+        out <- data.frame(metric = c("mae", "mse", "rmse", "mape", "r2"),
+                          value = c(mae, mse, rmse, mape, r2))
+        return(out)
+}
+
+# Plot ages vs predicted ages in test control dataset and in the high braak
+# dataset
+comp_predAges_test_ND <- function(test_ages, nd_ages, test_pred, nd_pred,
+                                  color = "group", filtCommAgeRank = T){
+        df <- data.frame(age_death = c(test_ages, nd_ages),
+                         specimenID = names(c(test_ages, nd_ages)),
+                         pred_age = c(test_pred, nd_pred),
+                         group = c(rep("control", length(test_ages)),
+                                   rep("nd", length(nd_ages))))
+        df$braak <- metDat$Braak[match(make.names(df$specimenID),
+                                       make.names(metDat$specimenID))]
+        df$substudy <- metDat$substudy[match(make.names(df$specimenID),
+                                             make.names(metDat$specimenID))]
+        if(filtCommAgeRank){
+                minAgeND <- min(df$age_death[df$group == "nd"])
+                df <- df[df$age_death >= minAgeND, ]
+        }
+        plt <- ggplot(data = df, mapping = aes(x = age_death,
+                                               y = pred_age,
+                                               col = .data[[color]])) +
+                geom_point() + 
+                xlab("chronological age") +
+                ylab("predicted age") +
+                theme(axis.text.y = element_text(size=15),
+                      axis.text.x = element_text(size=15),
+                      axis.title = element_text(size=20),
+                      panel.background = element_blank(),
+                      panel.grid.major = element_line(colour = "gray"), 
+                      panel.grid.minor = element_blank(),
+                      legend.text = element_text(size=12),
+                      legend.title = element_blank(),
+                      axis.line = element_line(colour = "black"),
+                      axis.line.y = element_line(colour = "black"),
+                      panel.border = element_rect(colour = "black",
+                                                  fill=NA, size=1))
+        out <- list(data = df, plot = plt)
+        return(out)
+}
+
+# Given a dataframe with the predicted ages in each sample, its age interval and
+# its braak index, plot predicted age per braak index.
+plotAgeInt <- function(dfBraak, ageInt, color = NULL){
+        plt <- ggplot(data = dfBraak[dfBraak$ageInt == ageInt, ],
+                      mapping = aes(x = braak,
+                                    y = pred_age)) +
+                geom_boxplot(outlier.shape = NA) +
+                ylab("predicted age") +
+                xlab("Braak index") +
+                ggtitle(gsub("_", " to ", ageInt)) +
+                theme(axis.text.y = element_text(size=15),
+                      axis.text.x = element_text(size=15),
+                      panel.background = element_blank(),
+                      panel.grid.major = element_line(colour = "gray"), 
+                      panel.grid.minor = element_blank(),
+                      axis.line = element_line(colour = "black"),
+                      axis.line.y = element_line(colour = "black"),
+                      panel.border = element_rect(colour = "black",
+                                                  fill=NA, size=1))
+        if(is.null(color)){
+                plt <- plt +
+                        geom_jitter()
+        }else{
+                plt <- plt +
+                        geom_jitter(mapping = aes(col = .data[[color]]))
+        }
+        return(plt)
+}
 
 # Load and parse data
 ################################################################################
-badamMod <- readRDS(badamModFile)
-modOld <- readRDS(modelFile)
-geneInfo <- read.csv(geneInfoFile, row.names = 1)
+
 metDat <- read.csv(metDatFile, row.names = 1)
 
 dat <- data.frame(data.table::fread(dataFile))
 rownames(dat) <- dat$V1
 dat <- dat[, colnames(dat) != "V1"]
 
-# Change names of genes to symbols and remove genes that don't have a symbol.
-symbNames <- geneInfo$symbol[match(colnames(dat), geneInfo$ensembl_gene_id_orig)]
+# Load Gompertz-Makeham parameters
+vals <- readRDS(ageTransParFile)
+vals <- round(vals,6) #Makes the parameters more readable with little loss of accuracy
 
-dat <- dat[, symbNames != ""]
-
-symbNames <- symbNames[symbNames != ""]
-
-colnames(dat) <- symbNames
-
-# Get list of genes from old model that don't have a coefficient equal to zero
-modSign <- modOld@model$coefficients_table$names[modOld@model$coefficients_table$coefficients != 0]
-modSign <- modSign[modSign != "Intercept"]
-
-# Get list of genes in badam model
-badamModSign <- badamMod@model$coefficients_table$names[badamMod@model$coefficients_table$coefficients != 0]
-
-badamModSign <- badamModSign[make.names(badamModSign) %in% colnames(dat)]
-
-intersect(badamModSign, modSign)
-
-# Keep only the genes that are either significant between impaired and 
-# not impaired, or that are hallmark genes in aging
-dat <- dat[, colnames(dat) %in% c(badamModSign, modSign)]
-
-# Analysis
+# Data training/testing partition
 ################################################################################
 
 # Split controls and rest
@@ -95,7 +214,7 @@ dat_rest <- dat[rownames(dat) %in% make.names(metDat$specimenID[metDat$diagn_4Br
 
 # Get a subdataset with individuals with a high braak index. We will use it 
 # later to check the predictions.
-dat_rest_highBraak <- dat_rest[rownames(dat_rest) %in% make.names(metDat$specimenID[metDat$Braak >= 4]), ]
+dat_rest_highBraak <- dat_rest[rownames(dat_rest) %in% make.names(metDat$specimenID[metDat$Braak >= braakThrshld]), ]
 
 # Obtain the ages of the controls and transform them
 ageVec <- metDat$ageDeath[match(rownames(dat_ctrls),
@@ -143,14 +262,15 @@ train4Mod <- cbind.data.frame(ageTransTrain, dat_ctrls_train)
 
 colnames(train4Mod)[1] <- "age_trans"
 
+# Model training
+################################################################################
+
 # Initialize h2o and fit the model
-conn <- h2o.init(max_mem_size="16G")
+conn <- h2o.init(max_mem_size=mem)
 trainData_h2o <- as.h2o(train4Mod)
 
 lambda <- NULL
 lambda_search <- T
-#alph <- 0.5
-#alph <- 0
 
 model <- h2o.glm(y = "age_trans",
                  training_frame = trainData_h2o,
@@ -170,7 +290,8 @@ model <- h2o.glm(y = "age_trans",
 h2o.saveModel(model, path = sprintf("%smodFuncsAlpha%s", outDir, alph), force = T)
 saveRDS(model, file = sprintf("%smodFuncsAlpha%s.rds", outDir, alph))
 
-#sum(procGenes %in% model@model$coefficients_table$names[model@model$coefficients_table$coefficients != 0])
+# Model evaluation in test dataset
+################################################################################
 
 # Plot metrics
 cv_r2 <- unlist(as.vector(model@model$cross_validation_metrics_summary["r2", -c(1, 2)]))
@@ -184,61 +305,43 @@ plotDF <- data.frame(metric = c(rep("r2", length(cv_r2)),
 
 
 ggplot(data = plotDF, mapping = aes(x = metric, y = value)) +
-        geom_boxplot(outlier.shape = NA) + geom_jitter()
-
+        geom_boxplot(outlier.shape = NA) + geom_jitter() +
+        theme(axis.text.y = element_text(size=15),
+              axis.text.x = element_text(size=15),
+              axis.title = element_blank(),
+              panel.background = element_blank(),
+              panel.grid.major = element_line(colour = "gray"), 
+              panel.grid.minor = element_blank(),
+              axis.line = element_line(colour = "black"),
+              axis.line.y = element_line(colour = "black"),
+              panel.border = element_rect(colour = "black",
+                                          fill=NA, size=1))
 
 ggsave(filename = sprintf("%smodFuncsAlpha%s_cvMetrics.pdf", outDir, alph))
 
 # Predict the age in the test dataset
-predictAge <- function(model,
-                       predExpr
-){
-        predExpr <- predExpr[model@parameters$x,]
-        predAges <- c()
-        maxiter <- ceiling(ncol(predExpr)/1000)
-        for(i in 1:maxiter){
-                #i <- 1
-                from <- ((i-1)*1000+1)
-                to <- min(i*1000,ncol(predExpr))
-                
-                inp_h2o <- as.h2o(t(predExpr[,from:to]))
-                
-                pred <- h2o.predict(model,inp_h2o)
-                pred <- as.data.frame(pred)$predict
-                names(pred) <- colnames(predExpr)[from:to]
-                
-                predAges <- c(predAges,pred)
-        }
-        return(predAges)
-}
-
 predicted <- predictAge(model, t(dat_ctrls_test))
 
-# Clip values higher than 1 to .99 to avoid errors, and lower than 0 to
-# 0.01
-predicted[predicted > 1] <- max(train4Mod$age_trans)
-predicted[predicted < 0] <- .000012
-
-# Re-convert predicted back to age
-predicted2Age <- sapply(predicted, function(x) agetrans_inverse(0, 110)(x))
-
-predicted2Age <- unlist(predicted2Age)
-names(predicted2Age) <- gsub(".root", "", names(predicted2Age))
+# Back-transform to chronological age
+predicted2Age <- back2Age(predicted)
 
 testAges <- ageVec[match(names(predicted2Age), names(ageVec))]
+testAgesTrns <- ageVecTrans[match(rownames(dat_ctrls_test),
+                                  names(ageVecTrans))]
 
-# Get metrics
-mae_test <- sum(abs(testAges - predicted2Age))/length(testAges)
-mse_test <- sum((testAges - predicted2Age)^2)/length(testAges)
-rmse_test <- sqrt(mse_test)
-mape_test <- (sum(abs((testAges - predicted2Age)/testAges))/length(testAges))*100
-r2_test <- 1 - sum((testAges - predicted2Age)^2)/sum((testAges - mean(testAges))^2)
+# Get metrics for test set
+metrics_chronAge <- getMetrics(testAges, predicted2Age)
+metrics_transAge <- getMetrics(testAgesTrns, predicted)
+print("Metrics for test dataset on chronological ages:")
+print(metrics_chronAge)
 
-print(sprintf("MAE in test dataset: %s", round(mae_test, digits = 3)))
-print(sprintf("MSE in test dataset: %s", round(mse_test, digits = 3)))
-print(sprintf("RMSE in test dataset: %s", round(rmse_test, digits = 3)))
-print(sprintf("MAPE in test dataset: %s", round(mape_test, digits = 3)))
-print(sprintf("R2 in test dataset: %s", round(r2_test, digits = 3)))
+print("Metrics for test dataset on transformed ages:")
+print(metrics_transAge)
+
+write.csv(metrics_chronAge,
+          file = sprintf("%smetricsTest_chronAge_alpha%s.csv", outDir, alph))
+write.csv(metrics_transAge,
+          file = sprintf("%smetricsTest_transAge_alpha%s.csv", outDir, alph))
 
 # Plot R2 of training, CV and testing
 dfr2 <- data.frame(r2_type = factor(c("r2_training",
@@ -249,7 +352,7 @@ dfr2 <- data.frame(r2_type = factor(c("r2_training",
                                                "r2_test")),
                    value = c(h2o.r2(model, train = T),
                              unlist(model@model$cross_validation_metrics_summary["r2", -c(1, 2)]),
-                             r2_test))
+                             metrics_transAge$value[metrics_transAge$metric == "r2"]))
 
 dfr2_bxplt <- dfr2[dfr2$r2_type == "r2_cv", ]
 dfr2_bxplt$r2_type <- factor(dfr2_bxplt$r2_type, levels = c("r2_training",
@@ -259,7 +362,6 @@ dfr2_point <- dfr2[dfr2$r2_type != "r2_cv", ]
 dfr2_point$r2_type <- factor(dfr2_point$r2_type, levels = c("r2_training",
                                                             "r2_cv",
                                                             "r2_test"))
-dfr2_point$r2_type
 
 ggplot(data = dfr2, mapping = aes(x = r2_type, y = value)) +
         geom_point(data = dfr2_point) + ylim(0, 1) +
@@ -282,153 +384,113 @@ ggplot(data = dfr2, mapping = aes(x = r2_type, y = value)) +
               panel.border = element_rect(colour = "black",
                                           fill=NA, size=1))
 
-ggsave(sprintf("%smodelAlph%sR2.pdf",
-               outDir, as.character(alph)),
+ggsave(sprintf("%smodelAlph%sR2.pdf", outDir, as.character(alph)),
        height = 3, width = 4)
 
-metrics_test <- data.frame(metric = c("mae", "mse", "rmse", "mape", "r2"),
-                           value = c(mae_test,
-                                     mse_test,
-                                     rmse_test,
-                                     mape_test,
-                                     r2_test))
-
-write.csv(metrics_test,
-          file = sprintf("%smetricsTest_alpha%s.csv", outDir, alph))
+# Assessment in neurodegenerated individuals
+################################################################################
 
 # Predict age in neurodegenerated individuals
 predicted_hBraak <- predictAge(model, t(dat_rest_highBraak))
-# Clip values higher than 1 to .99 to avoid errors, and lower than 0 to
-# .000012
-predicted_hBraak[predicted_hBraak > 1] <- max(train4Mod$age_trans)
-predicted_hBraak[predicted_hBraak < 0] <- .000012
 
+# Back-transform to chronological age
+predicted_hBraak2Age <- back2Age(predicted_hBraak)
 
-predicted_hBraak2Age <- sapply(predicted_hBraak, function(x) agetrans_inverse(0, 110)(x))
-predicted_hBraak2Age <- unlist(predicted_hBraak2Age)
-names(predicted_hBraak2Age) <- gsub(".root", "", names(predicted_hBraak2Age))
-
-
-
-agesHighBRaak <- metDat$ageDeath[match(rownames(dat_rest_highBraak),
-                                       make.names(metDat$specimenID))]
+agesHighBRaak <- metDat$ageDeath[match(rownames(dat_rest_highBraak), make.names(metDat$specimenID))]
 names(agesHighBRaak) <- rownames(dat_rest_highBraak)
+agesHighBRaakTrns <- test(agesHighBRaak)
 
 # Get metrics for the high braak 
-mae_hBraak <- sum(abs(agesHighBRaak - predicted_hBraak2Age))/length(agesHighBRaak)
-mse_hBraak <- sum((agesHighBRaak - predicted_hBraak2Age)^2)/length(agesHighBRaak)
-rmse_hBraak <- sqrt(mse_hBraak)
-mape_hBraak <- (sum(abs((agesHighBRaak - predicted_hBraak2Age)/agesHighBRaak))/length(agesHighBRaak))*100
-r2_hBraak <- 1 - sum((agesHighBRaak - predicted_hBraak2Age)^2)/sum((agesHighBRaak - mean(agesHighBRaak))^2)
+metrics_hBraak_chronAge <- getMetrics(agesHighBRaak, predicted_hBraak2Age)
+metrics_hBraak_transAge <- getMetrics(agesHighBRaakTrns, predicted_hBraak)
 
-print(sprintf("MAE in high-braak dataset: %s", round(mae_hBraak, digits = 3)))
-print(sprintf("MSE in high-braak dataset: %s", round(mse_hBraak, digits = 3)))
-print(sprintf("RMSE in high-braak dataset: %s", round(rmse_hBraak, digits = 3)))
-print(sprintf("MAPE in high-braak dataset: %s", round(mape_hBraak, digits = 3)))
-print(sprintf("R2 in high-braak dataset: %s", round(r2_hBraak, digits = 3)))
+print("Metrics for high-Braak samples on chronological ages:")
+print(metrics_hBraak_chronAge)
 
-metrics_hBraak <- data.frame(metric = c("mae", "mse", "rmse", "mape", "r2"),
-                             value = c(mae_hBraak,
-                                       mse_hBraak,
-                                       rmse_hBraak,
-                                       mape_hBraak,
-                                       r2_hBraak))
+print("Metrics for high-Braak samples on transformed ages:")
+print(metrics_hBraak_transAge)
 
-write.csv(metrics_hBraak,
-          file = sprintf("%smetricsHBraak_alpha%s.csv", outDir, alph))
+write.csv(metrics_hBraak_chronAge,
+          file = sprintf("%smetricsHBraak_chronAge_alpha%s.csv", outDir, alph))
+write.csv(metrics_hBraak_transAge,
+          file = sprintf("%smetricsHBraak_transAge_alpha%s.csv", outDir, alph))
 
-# Plot ages vs predicted ages in test control dataset and in the high braak
-# dataset
-testAges_subsetHigh <- testAges[testAges >= min(as.numeric(names(table(agesHighBRaak)))) & testAges <= max(as.numeric(names(table(agesHighBRaak))))]
-predicted2Age_subsetHigh <- predicted2Age[testAges >= min(as.numeric(names(table(agesHighBRaak)))) & testAges <= max(as.numeric(names(table(agesHighBRaak))))]
+# Plot chronological age vs predicted age in test control dataset, and 
+# in ND dataset. Consider only ages from the minimum neurodegenerated onwards.
+comp_predAges_test_ND(testAges,
+                      agesHighBRaak,
+                      predicted2Age,
+                      predicted_hBraak2Age,
+                      color = "group")$plot
 
-df4DisContComp <- data.frame(age_death = c(testAges_subsetHigh,
-                                           agesHighBRaak),
-                             specimenID = names(c(testAges_subsetHigh,
-                                                  agesHighBRaak)),
-                             pred_age = c(predicted2Age_subsetHigh,
-                                          predicted_hBraak2Age),
-                             group = c(rep("control", length(testAges_subsetHigh)),
-                                       rep("high_braak", length(agesHighBRaak))))
+ggsave(sprintf("%sctrls_highBraak_diagn_alpha%s.pdf", outDir, alph), 
+       height = 8,
+       width = 9)
 
-df4DisContComp$braak <- metDat$Braak[match(df4DisContComp$specimenID,
-                                           metDat$specimenID)]
+comp_predAges_test_ND(testAges,
+                      agesHighBRaak,
+                      predicted2Age,
+                      predicted_hBraak2Age,
+                      color = "braak")$plot
 
-df4DisContComp$substudy <- metDat$substudy[match(df4DisContComp$specimenID,
-                                                 make.names(metDat$specimenID))]
+ggsave(sprintf("%sctrls_highBraak_braak_alpha%s.pdf", outDir, alph),
+       height = 8, width = 9)
 
+comp_predAges_test_ND(testAges,
+                      agesHighBRaak,
+                      predicted2Age,
+                      predicted_hBraak2Age,
+                      color = "substudy")$plot
 
-ggplot(data = df4DisContComp,
-       mapping = aes(x = age_death, y = pred_age, col = group)) +
-        geom_point()
-
-ggsave(sprintf("%sctrls_highBraak_diagn_alpha%s.pdf", outDir, alph))
+ggsave(sprintf("%sctrls_highBraak_batch_alpha%s.pdf", outDir, alph),
+       height = 8, width = 9)
 
 
-ggplot(data = df4DisContComp,
-       mapping = aes(x = age_death, y = pred_age, col = braak)) +
-        geom_point()
+# Plot chronological age vs predicted age in test control dataset, and 
+# in ND dataset. Consider all ages..
+predAgeDF_tst_vs_nd <- comp_predAges_test_ND(testAges,
+                                             agesHighBRaak,
+                                             predicted2Age,
+                                             predicted_hBraak2Age,
+                                             color = "group",
+                                             filtCommAgeRank = F)
 
-ggsave(sprintf("%sctrls_highBraak_braak_alpha%s.pdf", outDir, alph))
+predAgeDF_tst_vs_nd$plot
 
+ggsave(sprintf("%sctrls_highBraak_all_diagn_alpha%s.pdf", outDir, alph),
+       height = 8, width = 9)
 
-ggplot(data = df4DisContComp,
-       mapping = aes(x = age_death, y = pred_age, col = substudy)) +
-        geom_point()
-ggsave(sprintf("%sctrls_highBraak_batch_alpha%s.pdf", outDir, alph))
+comp_predAges_test_ND(testAges,
+                      agesHighBRaak,
+                      predicted2Age,
+                      predicted_hBraak2Age,
+                      color = "braak",
+                      filtCommAgeRank = F)$plot
 
+ggsave(sprintf("%sctrls_highBraak_all_braak_alpha%s.pdf", outDir, alph),
+       height = 8, width = 9)
 
-df4DisContComp <- data.frame(age_death = c(testAges,
-                                           agesHighBRaak),
-                             specimenID = names(c(testAges,
-                                                  agesHighBRaak)),
-                             pred_age = c(predicted2Age,
-                                          predicted_hBraak2Age),
-                             group = c(rep("control", length(testAges)),
-                                       rep("high_braak", length(agesHighBRaak))))
+comp_predAges_test_ND(testAges,
+                      agesHighBRaak,
+                      predicted2Age,
+                      predicted_hBraak2Age,
+                      color = "substudy",
+                      filtCommAgeRank = F)$plot
 
-df4DisContComp$group <- gsub("high_braak",
-                             "neurodegenerated",
-                             df4DisContComp$group)
+ggsave(sprintf("%sctrls_highBraak_all_batch_alpha%s.pdf", outDir, alph),
+       height = 8, width = 9)
 
-df4DisContComp$substudy <- metDat$substudy[match(df4DisContComp$specimenID,
-                                                 make.names(metDat$specimenID))]
-
-ggplot(data = df4DisContComp,
-       mapping = aes(x = age_death, y = pred_age, col = group)) +
-        geom_point() + 
-        xlab("chronological age") +
-        ylab("predicted age") +
-        theme(axis.text.y = element_text(size=15),
-              axis.text.x = element_text(size=15),
-              axis.title = element_text(size=20),
-              panel.background = element_blank(),
-              panel.grid.major = element_line(colour = "gray"), 
-              panel.grid.minor = element_blank(),
-              legend.text = element_text(size=12),
-              legend.title = element_blank(),
-              axis.line = element_line(colour = "black"),
-              axis.line.y = element_line(colour = "black"),
-              panel.border = element_rect(colour = "black",
-                                          fill=NA, size=1))
-
-ggsave(sprintf("%sctrls_highBraak_all_diagn_alpha%s.pdf", outDir, alph), height = 8, width = 9)
-
-ggplot(data = df4DisContComp,
-       mapping = aes(x = age_death, y = pred_age, col = substudy)) +
-        geom_point()
-
-ggsave(sprintf("%sctrls_highBraak_all_batch_alpha%s.pdf", outDir, alph))
+# Do Mann-Whitney test between high-braak and controls in the 60 to 70 age
+# range
+df4DisContComp_60to70 <- predAgeDF_tst_vs_nd$data[predAgeDF_tst_vs_nd$data$age_death >= 60 & predAgeDF_tst_vs_nd$data$age_death <= 70, ]
 
 
-df4DisContComp_60to70 <- df4DisContComp[df4DisContComp$age_death >= 60 & df4DisContComp$age_death <= 70, ]
-
-
-plot(density(df4DisContComp_60to70$pred_age[df4DisContComp_60to70$group == "high_braak"]))
-plot(density(df4DisContComp_60to70$pred_age[df4DisContComp_60to70$group == "control"]))
+#plot(density(df4DisContComp_60to70$pred_age[df4DisContComp_60to70$group == "nd"]))
+#plot(density(df4DisContComp_60to70$pred_age[df4DisContComp_60to70$group == "control"]))
 
 ggplot(df4DisContComp_60to70, mapping = aes(x = group, y = pred_age)) +
         geom_boxplot() +
+        stat_compare_means(method = "wilcox.test") +
         stat_compare_means(method = "wilcox.test") +
         ylab("predicted age") +
         
@@ -446,48 +508,35 @@ ggplot(df4DisContComp_60to70, mapping = aes(x = group, y = pred_age)) +
               panel.border = element_rect(colour = "black",
                                           fill=NA, size=1))
 
-ggsave(filename = sprintf("%spredAge60to60ctrlVsHBraak.pdf",
-                          outDir),
+ggsave(filename = sprintf("%spredAge60to70ctrlVsHBraak.pdf", outDir),
        width = 4,
        height = 5)
 
-wilcox.test(df4DisContComp_60to70$pred_age[df4DisContComp_60to70$group == "control"],
-            df4DisContComp_60to70$pred_age[df4DisContComp_60to70$group == "high_braak"])
+
+# Obtain boxplots of predicted age in each braak stage in each decade, from
+# 60 to 100
 
 # Predict ages in all the samples that are in rest and have braak index
 dat_rest_wBraak <- dat_rest[rownames(dat_rest) %in% make.names(metDat$specimenID[!is.na(metDat$Braak)]), ]
-wBraak_ages <- metDat$ageDeath[match(rownames(dat_rest_wBraak),
-                                     make.names(metDat$specimenID))]
+wBraak_ages <- metDat$ageDeath[match(rownames(dat_rest_wBraak), make.names(metDat$specimenID))]
 predicted_wBraak <- predictAge(model, t(dat_rest_wBraak))
 
-predicted_wBraak[predicted_wBraak > 1] <- max(train4Mod$age_trans)
-predicted_wBraak[predicted_wBraak < 0] <- .000012
-
-
-predicted_wBraak2Age <- sapply(predicted_wBraak, function(x) agetrans_inverse(0, 110)(x))
-predicted_wBraak2Age <- unlist(predicted_wBraak2Age)
-names(predicted_wBraak2Age) <- gsub(".root", "", names(predicted_wBraak2Age))
+predicted_wBraak2Age <- back2Age(predicted_wBraak)
 
 dfBraak <- data.frame(specimenID = metDat$specimenID[match(names(predicted_wBraak2Age),
                                                            make.names(metDat$specimenID))],
                       age_death = wBraak_ages,
                       pred_age = predicted_wBraak2Age,
-                      braak = metDat$Braak[match(names(predicted_wBraak2Age),
-                                                 make.names(metDat$specimenID))],
+                      braak = metDat$Braak[match(names(predicted_wBraak2Age), make.names(metDat$specimenID))],
                       group = "Rest",
-                      substudy = metDat$substudy[match(names(predicted_wBraak2Age),
-                                                       make.names(metDat$specimenID))])
+                      substudy = metDat$substudy[match(names(predicted_wBraak2Age), make.names(metDat$specimenID))])
 
 
+df4DisContComp <- predAgeDF_tst_vs_nd$data
 df4DisContComp$braak <- rep(NA, nrow(df4DisContComp))
 dfBraak <- rbind.data.frame(dfBraak,
                             df4DisContComp[df4DisContComp$group == "control",
-                                           c("specimenID",
-                                             "age_death",
-                                             "pred_age",
-                                             "braak",
-                                             "group",
-                                             "substudy")])
+                                           c("specimenID", "age_death", "pred_age", "braak", "group", "substudy")])
 
 dfBraak$ageInt <- rep(NA, nrow(dfBraak))
 ageInt <- 20:100
@@ -503,115 +552,44 @@ for(i in 1:(length(ageInt) - 1)){
 dfBraak$braak[dfBraak$group == "control"] <- "control"
 
 
-age60_70 <- ggplot(data = dfBraak[dfBraak$ageInt == "60_70", ],
-                   mapping = aes(x = braak,
-                                 y = pred_age)) +
-        geom_boxplot(outlier.shape = NA) +
-        geom_jitter(mapping = aes(col = substudy)) +
-        ggtitle("60 to 70")
+age60_70_batch <- plotAgeInt(dfBraak = dfBraak,
+                             ageInt = "60_70",
+                             color = "substudy")
+age70_80_batch <- plotAgeInt(dfBraak = dfBraak,
+                             ageInt = "70_80",
+                             color = "substudy")
+age80_90_batch <- plotAgeInt(dfBraak = dfBraak,
+                             ageInt = "80_90",
+                             color = "substudy")
+age90_100_batch <- plotAgeInt(dfBraak = dfBraak,
+                              ageInt = "90_100",
+                              color = "substudy")
 
-age70_80 <- ggplot(data = dfBraak[dfBraak$ageInt == "70_80", ],
-                   mapping = aes(x = braak,
-                                 y = pred_age)) +
-        geom_boxplot(outlier.shape = NA) +
-        geom_jitter(mapping = aes(col = substudy)) +
-        ggtitle("70 to 80")
+ggarrange(plotlist = list(age60_70_batch,
+                          age70_80_batch,
+                          age80_90_batch,
+                          age90_100_batch))
+ggsave(filename = sprintf("%spredAg_byBraakAndAge_batch_alph%s.pdf",
+                          outDir, alph),
+       width = 10,
+       height = 6)
 
-age80_90 <- ggplot(data = dfBraak[dfBraak$ageInt == "80_90", ],
-                   mapping = aes(x = braak,
-                                 y = pred_age)) +
-        geom_boxplot(outlier.shape = NA) +
-        geom_jitter(mapping = aes(col = substudy)) +
-        ggtitle("80 to 90")
+age60_70 <- plotAgeInt(dfBraak = dfBraak,
+                       ageInt = "60_70")
+age70_80 <- plotAgeInt(dfBraak = dfBraak,
+                       ageInt = "70_80")
+age80_90 <- plotAgeInt(dfBraak = dfBraak,
+                       ageInt = "80_90")
+age90_100 <- plotAgeInt(dfBraak = dfBraak,
+                        ageInt = "90_100")
 
-age90_100 <- ggplot(data = dfBraak[dfBraak$ageInt == "90_100", ],
-                    mapping = aes(x = braak,
-                                  y = pred_age)) +
-        geom_boxplot(outlier.shape = NA) +
-        geom_jitter(mapping = aes(col = substudy)) +
-        ggtitle("90 to 100")
-
-ggarrange(plotlist = list(age60_70, age70_80, age80_90, age90_100))
+ggarrange(plotlist = list(age60_70,
+                          age70_80,
+                          age80_90,
+                          age90_100))
 ggsave(filename = sprintf("%spredAg_byBraakAndAge_alph%s.pdf",
-                          outDir,
-                          alph),
-       width = 10, height = 6)
+                          outDir, alph),
+       width = 10,
+       height = 6)
 
-
-age60_70 <- ggplot(data = dfBraak[dfBraak$ageInt == "60_70", ],
-                   mapping = aes(x = braak,
-                                 y = pred_age)) +
-        geom_boxplot(outlier.shape = NA) +
-        geom_jitter() +
-        ylab("predicted age") +
-        xlab("Braak index") +
-        ggtitle("60 to 70") +
-        theme(axis.text.y = element_text(size=15),
-              axis.text.x = element_text(size=15),
-              panel.background = element_blank(),
-              panel.grid.major = element_line(colour = "gray"), 
-              panel.grid.minor = element_blank(),
-              axis.line = element_line(colour = "black"),
-              axis.line.y = element_line(colour = "black"),
-              panel.border = element_rect(colour = "black",
-                                          fill=NA, size=1))
-
-age70_80 <- ggplot(data = dfBraak[dfBraak$ageInt == "70_80", ],
-                   mapping = aes(x = braak,
-                                 y = pred_age)) +
-        geom_boxplot(outlier.shape = NA) +
-        geom_jitter() +
-        ylab("predicted age") +
-        xlab("Braak index") +
-        ggtitle("70 to 80") +
-        theme(axis.text.y = element_text(size=15),
-              axis.text.x = element_text(size=15),
-              panel.background = element_blank(),
-              panel.grid.major = element_line(colour = "gray"), 
-              panel.grid.minor = element_blank(),
-              axis.line = element_line(colour = "black"),
-              axis.line.y = element_line(colour = "black"),
-              panel.border = element_rect(colour = "black",
-                                          fill=NA, size=1))
-
-age80_90 <- ggplot(data = dfBraak[dfBraak$ageInt == "80_90", ],
-                   mapping = aes(x = braak,
-                                 y = pred_age)) +
-        geom_boxplot(outlier.shape = NA) +
-        geom_jitter() +
-        ylab("predicted age") +
-        xlab("Braak index") +
-        ggtitle("80 to 90") +
-        theme(axis.text.y = element_text(size=15),
-              axis.text.x = element_text(size=15),
-              panel.background = element_blank(),
-              panel.grid.major = element_line(colour = "gray"), 
-              panel.grid.minor = element_blank(),
-              axis.line = element_line(colour = "black"),
-              axis.line.y = element_line(colour = "black"),
-              panel.border = element_rect(colour = "black",
-                                          fill=NA, size=1))
-
-age90_100 <- ggplot(data = dfBraak[dfBraak$ageInt == "90_100", ],
-                    mapping = aes(x = braak,
-                                  y = pred_age)) +
-        geom_boxplot(outlier.shape = NA) +
-        geom_jitter() +
-        ylab("predicted age") +
-        xlab("Braak index") +
-        ggtitle("90 to 100") +
-        theme(axis.text.y = element_text(size=15),
-              axis.text.x = element_text(size=15),
-              panel.background = element_blank(),
-              panel.grid.major = element_line(colour = "gray"), 
-              panel.grid.minor = element_blank(),
-              axis.line = element_line(colour = "black"),
-              axis.line.y = element_line(colour = "black"),
-              panel.border = element_rect(colour = "black",
-                                          fill=NA, size=1))
-
-ggarrange(plotlist = list(age60_70, age70_80, age80_90, age90_100))
-ggsave(filename = sprintf("%spredAg_byBraakAndAge_noBatch_alph%s.pdf",
-                          outDir,
-                          alph),
-       width = 10, height = 6)
+h2o.shutdown(prompt = F)

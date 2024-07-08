@@ -56,6 +56,14 @@ rownames(dat) <- dat$V1
 dat <- dat[, colnames(dat) != "V1"]
 metDat <- read.csv(metDatFile, row.names = 1)
 
+# Edit substudy column in metDat to account for ROSMAP sub-batches
+
+substudNew <- paste("ROSMAP",
+                    metDat$batch_seq[metDat$substudy == "ROSMAP"],
+                    sep = "_")
+
+metDat$substudy[metDat$substudy == "ROSMAP"] <- substudNew
+
 
 # Plot the surrogate variables
 ################################################################################
@@ -86,15 +94,15 @@ plotSVs_1Dim <- function(svObj, dat, metDat){
                                              make.names(metDat$specimenID))]
         svMat$samps <- rep("samples", nrow(svMat))
         plt <- ggplot(data = svMat, mapping = aes(x = samps,
-                                                  y = SV1,
+                                                  y = SV_1,
                                                   col = batch)) +
-                geom_point() +
                 geom_jitter() +
                 theme(title = ggtext::element_markdown(),
                       axis.title.y = ggtext::element_markdown(),
                       axis.title.x = element_blank(),
                       panel.background = element_blank(),
-                      panel.border = element_rect(colour = "black", fill=NA, size=1),
+                      panel.border = element_rect(colour = "black", fill=NA,
+                                                  linewidth = 1),
                       panel.grid.major = element_line(colour = "#d4d4d4"),
                       legend.position = "right")
         return(plt)
@@ -150,6 +158,6 @@ if(ncol(svaObj$sv) > 1){
         ggsave(plot = allSVs, filename = outName, width = 10, height = 10)
         print(sprintf("%s saved at %s.", basename(outName), dirname(outName)))
 }else{
-        print(sprintf("No surrogate variables where detected in %s dataset, so no plot was generated",
+        print(sprintf("No surrogate variables were detected in %s dataset, so no plot was generated",
               basename(datFile)))
 }

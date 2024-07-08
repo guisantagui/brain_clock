@@ -75,7 +75,8 @@ edata <- t(dat)
 
 n.sv = num.sv(edata, mod, method="leek")
 
-print(sprintf("Number of surrogate variables detected: %s.",
+print(sprintf("Number of surrogate variables detected in %s: %s.",
+              basename(dat),
               as.character(n.sv)))
 
 svobj = sva(edata,
