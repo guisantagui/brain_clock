@@ -21,12 +21,12 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-gctxDir="/mnt/lscratch/users/gsantamaria/test_large_files/"
+gctxDir="/mnt/lscratch/users/gsantamaria/test_large_files/NPC/gctx/"
 cellType="NPC"
 
 
 
-gctxFile="/mnt/lscratch/users/gsantamaria/test_large_files/ctl_predicted_RNAseq_profiles.gctx"
+#gctxFile="/mnt/lscratch/users/gsantamaria/test_large_files/ctl_predicted_RNAseq_profiles.gctx"
 outDir="/mnt/lscratch/users/gsantamaria/test_large_files/parsed_mats/"
 
 # Run

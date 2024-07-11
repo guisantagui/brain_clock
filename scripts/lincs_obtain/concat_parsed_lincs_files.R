@@ -54,12 +54,23 @@ readCsvFst <- function(pth, header = T){
         return(df)
 }
 
+# write.csv, but faster
+writeCsvFst <- function(df, file, rowNames = T, colNames = T){
+        if(rowNames){
+                rn <- rownames(df)
+                df <- data.table::data.table(df)
+                df[, V1 := rn]
+                data.table::setcolorder(df, c("V1", setdiff(names(df), "V1")))
+        }else{
+                df <- data.table::data.table(df)
+        }
+        data.table::fwrite(df, file, col.names = colNames)
+}
 
 # Given a list of csv files, concatenates them either row wise or column wise
 concatFileList <- function(file_list, concatBy){
         outDF <- NULL
         for(i in seq_along(file_list)){
-                i <- 1
                 file_list <- targetFiles
                 f <- file_list[i]
                 df <- readCsvFst(f)
@@ -87,5 +98,5 @@ if(whichDF == "expMat"){
                                concatBy = "rows")
 }
 
-write.csv(conc, file = outName)
+writeCsvFst(conc, file = outName)
 print(sprintf("%s saved at %s.", basename(outName), dirname(outName)))

@@ -16,7 +16,7 @@ library(org.Hs.eg.db)
 
 # Terminal argument parser
 ################################################################################
-parser <- arg_parser("Filter GCTX LINCS file for desired cell types and write in new files.")
+parser <- arg_parser("Read LINCS gctx filtered files and generate expression matrices and metadata files.")
 
 parser <- add_argument(parser = parser,
                        arg = c("input",
@@ -30,8 +30,8 @@ parsed <- parse_args(parser)
 # Directory stuff
 ################################################################################
 
-#lincs_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/LINCS/npc_data/ctl_predicted_RNAseq_profiles_NPC.gctx"
-#outDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/LINCS/parsed/"
+lincs_file <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/gctx/cp_predicted_RNAseq_profiles_NPC_2.gctx"
+outDir <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/"
 
 lincs_file <- parsed$input
 outDir <- parsed$outDir
@@ -274,8 +274,9 @@ sumDupsMat <- function(m, dups_in){
 }
 
 # Load data
-lincs <- parse_gctx(lincs_file)
 ################################################################################
+lincs <- parse_gctx(lincs_file)
+
 
 # Parse dataset into a table with proper column and row names 
 ################################################################################
