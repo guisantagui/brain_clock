@@ -3,7 +3,9 @@
 # batch effects left and if the surrogate variables are capturing known.       #
 # batches.                                                                     #
 ################################################################################
-
+if(!require(BiocManager, quietly = T)){
+        install.packages("BiocManager", repos='http://cran.us.r-project.org')
+}
 if(!require(argparser, quietly = T)){
         install.packages("argparser", repos='http://cran.us.r-project.org')
 }
