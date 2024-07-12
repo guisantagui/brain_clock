@@ -1,20 +1,20 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=preproc
+#SBATCH --job-name=preproc_w111
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=100GB
-#SBATCH -c 8
+#SBATCH -c 4
 #SBATCH --time=01-00:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_preproc_pipe_lincs.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_preproc_pipe_w111.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_preproc_pipe_lincs.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_preproc_pipe_w111.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
-#SBATCH -p batch
+#SBATCH -p bigmem
 #SBATCH --qos=normal
 
 conda activate r-4.3.1
@@ -27,7 +27,7 @@ conda activate r-4.3.1
 # Variables for the pipeline
 ########################################################################################################################
 
-input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_log2_quantNorm_preproc_wLINCS.csv"
+input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_log2_quantNorm_preproc.csv"
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wLINCS.csv"
 #filtDF="/home/users/gsantamaria/projects/brain_clock/data/geneFiltFiles/lincsLndmrkGenes.csv" # "none" for not filtering
 filtDF="none" # "none" for not filtering
@@ -36,7 +36,7 @@ nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
 #rinFilt=6
-outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_all/"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ__w111Samps_all/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then

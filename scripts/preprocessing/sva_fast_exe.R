@@ -15,8 +15,10 @@ if(!require("limma", quietly = T)){
         BiocManager::install("limma", update = F)
 }
 library(limma)
-if(!require(sva, quietly = T)) BiocManager::install("sva", update = F)
-library(sva)
+if(!require("SmartSVA", quietly = T)){
+        install.packages("SmartSVA", repos='http://cran.us.r-project.org')
+}
+library(SmartSVA)
 
 
 
@@ -88,17 +90,27 @@ print("Running SVA...")
 edata <- t(dat)
 
 print("Computing the number of SVs...")
-n.sv = num.sv(edata, mod, method="leek")
+df <- data.frame(matrix(mod[, colnames(mod) != "(Intercept)"],
+                        nrow = nrow(mod),
+                        ncol = ncol(mod) - 1,
+                        dimnames = list(rownames(mod),
+                                        colnames(mod)[colnames(mod) != "(Intercept)"])))
+## Determine the number of SVs
+df_vars <- paste(colnames(df), collapse = " + ")
+formula_str <- sprintf("t(edata) ~ %s", df_vars)
+
+Y.r <- t(resid(lm(as.formula(formula_str), data=df)))
+n.sv <- EstDimRMT(Y.r, FALSE)$dim + 1
 
 print(sprintf("Number of surrogate variables detected in %s: %s.",
               basename(datFile),
               as.character(n.sv)))
 
 print("Computing the SVs...")
-svobj = sva(edata,
-            mod,
-            mod0,
-            n.sv=n.sv)
+svobj = smartsva.cpp(edata,
+                     mod,
+                     mod0,
+                     n.sv=n.sv)
 
 
 
