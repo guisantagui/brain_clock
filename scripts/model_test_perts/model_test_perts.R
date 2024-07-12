@@ -155,7 +155,7 @@ for(i in 1:nBatches){
         idx1 <- (i - 1) * sizeBatch + 1
         idx2 <- idx1 + sizeBatch - 1
         if(idx2 > nrow(dat)){
-                idx2 <- length(cellIdxs)
+                idx2 <- nrow(dat)
         }
         pred <- predictAge(mod, t(dat[idx1:idx2, ]))
         predVec <- c(predVec, pred)
@@ -168,3 +168,5 @@ predsDF <- data.frame(specimenID = names(predVec),
 writeCsvFst(predsDF, file = outName)
 print(sprintf("%s saved in %s.", basename(outName), dirname(outName)))
 h2o.shutdown(prompt = F)
+
+################################################################################
