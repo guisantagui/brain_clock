@@ -58,3 +58,8 @@ for(i in 1:length(expMatFiles)){
 
 all(colnames(eMatConc) %in% make.names(mDatConc$specimenID))
 sum(!colnames(eMatConc) %in% make.names(mDatConc$specimenID))
+
+eMatGlob <- readCsvFst("/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_log2_quantNorm_preproc_wLINCS.csv")
+mDatGlob <- readCsvFst("/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wLINCS.csv")
+
+sum(!rownames(eMatGlob) %in% make.names(mDatGlob$specimenID))

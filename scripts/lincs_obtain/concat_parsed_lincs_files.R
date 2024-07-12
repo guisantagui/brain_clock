@@ -27,6 +27,12 @@ parsed <- parse_args(parser)
 # Directory stuff
 ################################################################################
 
+matDir <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/"
+cellType <- "NPC"
+whichDF <- "metDat"
+outDir <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/"
+
+
 matDir <- parsed$input
 cellType <- parsed$cellType
 whichDF <- parsed$whichDF
@@ -70,10 +76,23 @@ writeCsvFst <- function(df, file, rowNames = T, colNames = T){
 # Given a list of csv files, concatenates them either row wise or column wise
 concatFileList <- function(file_list, concatBy){
         outDF <- NULL
+        #file_list <- targetFiles
+        #concatBy <- "rows"
         for(i in seq_along(file_list)){
-                file_list <- targetFiles
+                #i <- 5
                 f <- file_list[i]
                 df <- readCsvFst(f)
+                # In the case of metDat, the control files have less columns,
+                # so let's add them filled by NAs
+                if(concatBy == "rows" & !is.null(outDF)){
+                        cols2Add <- colnames(outDF)[!colnames(outDF) %in% colnames(df)]
+                        cols2BindDF <- data.frame(matrix(nrow = nrow(df),
+                                                         ncol = length(cols2Add),
+                                                         dimnames = list(rownames(df),
+                                                                         cols2Add)))
+                        df <- cbind.data.frame(df, cols2BindDF)
+                        df <- df[, colnames(outDF)]
+                }
                 if(is.null(outDF)){
                         outDF <- df
                 }else{
@@ -92,7 +111,8 @@ concatFileList <- function(file_list, concatBy){
 
 print(sprintf("Concatenating %s matrices...", whichDF))
 if(whichDF == "expMat"){
-        conc <- concatFileList(targetFiles)
+        conc <- concatFileList(targetFiles,
+                               concatBy = "cols")
 }else if (whichDF == "metDat"){
         conc <- concatFileList(targetFiles,
                                concatBy = "rows")

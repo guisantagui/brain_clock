@@ -58,7 +58,7 @@ outName <- gsub(".rds|.RDS", "", basename(bigPCAFile))
 ################################################################################
 pcBiplot <- function(PC, x="PC1", y="PC2", varPlotFilt = NULL, biPlot = F,
                      colBy = "tissue", colROSMAPBatch = F){
-        metDat <- metDat
+        #metDat <- metDat
         if(colROSMAPBatch){
                 metDat$substudy[metDat$substudy == "ROSMAP"] <- paste("ROSMAP",
                                                                       metDat$batch_seq[metDat$substudy == "ROSMAP"],

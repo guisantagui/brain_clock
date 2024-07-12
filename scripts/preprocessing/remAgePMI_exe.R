@@ -40,6 +40,22 @@ if(!dir.exists(outDir)){
         dir.create(outDir, recursive = T)
 }
 
+# Functions
+################################################################################
+
+# write.csv, but faster
+writeCsvFst <- function(df, file, rowNames = T, colNames = T){
+        if(rowNames){
+                rn <- rownames(df)
+                df <- data.table::data.table(df)
+                df[, V1 := rn]
+                data.table::setcolorder(df, c("V1", setdiff(names(df), "V1")))
+        }else{
+                df <- data.table::data.table(df)
+        }
+        data.table::fwrite(df, file, col.names = colNames)
+}
+
 # Load data
 ################################################################################
 metDat <- read.csv(metDatFile, row.names = 1)
@@ -80,6 +96,6 @@ edata_adj <- removeBatchEffect(edata,
 edata_adj <- t(edata_adj)
 
 outName <- sprintf("%s%s_pmiAgeAdj.csv", outDir, outBaseName)
-write.csv(edata_adj, file = outName)
+writeCsvFst(edata_adj, file = outName)
 
 print(sprintf("%s saved at %s", basename(outName), dirname(outName)))

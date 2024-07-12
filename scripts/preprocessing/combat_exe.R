@@ -40,6 +40,19 @@ readCsvFast <- function(f){
         return(df)
 }
 
+# write.csv, but faster
+writeCsvFst <- function(df, file, rowNames = T, colNames = T){
+        if(rowNames){
+                rn <- rownames(df)
+                df <- data.table::data.table(df)
+                df[, V1 := rn]
+                data.table::setcolorder(df, c("V1", setdiff(names(df), "V1")))
+        }else{
+                df <- data.table::data.table(df)
+        }
+        data.table::fwrite(df, file, col.names = colNames)
+}
+
 # Directory stuff
 ################################################################################
 dat <- parsed$input
@@ -70,5 +83,5 @@ combat_edata <- ComBat(dat = edata,
 combat_edata <- t(combat_edata)
 
 outName <- sprintf("%s%s_combat.csv", outDir, outBaseName)
-write.csv(combat_edata, file = outName)
+writeCsvFst(combat_edata, file = outName)
 print(sprintf("%s saved at %s.", basename(outName), dirname(outName)))

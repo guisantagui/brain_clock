@@ -41,6 +41,22 @@ if(!dir.exists(outDir)){
         dir.create(outDir, recursive = T)
 }
 
+# Functions
+################################################################################
+
+# write.csv, but faster
+writeCsvFst <- function(df, file, rowNames = T, colNames = T){
+        if(rowNames){
+                rn <- rownames(df)
+                df <- data.table::data.table(df)
+                df[, V1 := rn]
+                data.table::setcolorder(df, c("V1", setdiff(names(df), "V1")))
+        }else{
+                df <- data.table::data.table(df)
+        }
+        data.table::fwrite(df, file, col.names = colNames)
+}
+
 # Load data
 ################################################################################
 metDat <- read.csv(metDatFile, row.names = 1)
@@ -138,9 +154,9 @@ comb_TPMs_log <- comb_TPMs_log[rownames(comb_TPMs_log) %in% sampsGoodRIN, ]
 # Save preprocessed datasets
 ################################################################################
 prepOutName <- sprintf("%s%s_preproc.csv", outDir, outName)
-write.csv(comb_TPMs, prepOutName)
+writeCsvFst(comb_TPMs, prepOutName)
 print(sprintf("%s saved at %s", basename(prepOutName), dirname(prepOutName)))
 
 logOutName <- sprintf("%s%s_preproc_log10.csv", outDir, outName)
-write.csv(comb_TPMs_log, logOutName)
+writeCsvFst(comb_TPMs_log, logOutName)
 print(sprintf("%s saved at %s", basename(logOutName), dirname(logOutName)))

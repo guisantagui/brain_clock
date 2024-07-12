@@ -1,40 +1,41 @@
 ################################################################################
-# Remove tissues from preprocessed TPM file (intended for cerebellum, as it    #
-# is very different).                                                          #
+#                                                                              #
+# Filters genes to keep only the ones in a subset dataset. Intended for        #
+# considering only LINCS landmark genes, or protein coding genes               #
+#                                                                              #
 ################################################################################
+
 if(!require(argparser, quietly = T)){
         install.packages("argparser", repos='http://cran.us.r-project.org')
 }
 library(argparser)
 
-
-# Parser
+# Terminal argument parser
 ################################################################################
-parser <- arg_parser("Remove a set of tissues from input dataset.")
+parser <- arg_parser("Run SVA.")
 
 parser <- add_argument(parser = parser,
                        arg = c("input",
-                               "--metDat",
-                               "--tiss2rem",
-                               "--outTag",
+                               "--filtFile",
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features in columns, samples rows. CSV.",
-                                "Metadata CSV file.",
-                                "Tissues to be removed, separated by commas.",
-                                "Tag to add to the returned file name",
+                                "File with ENSEMBL IDs of genes that are going to be kept, in a column called ensembl_gene_id_orig.",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F, F, F))
+                       flag = c(F, F, F))
 
 parsed <- parse_args(parser)
 
-# Directory stuff
+# Terminal argument parser
 ################################################################################
-preprocTPMsFile <- parsed$input
-metDatFile <- parsed$metDat
-tiss2rem <- parsed$tiss2rem
-outTag <- parsed$outTag
+
+inFile <- parsed$input
+filtFile <- parsed$filtFile
 outDir <- parsed$outDir
-outName <- sprintf("%s%s_%s.csv", outDir, gsub(".csv", "", basename(preprocTPMsFile)), outTag)
+
+outName <- sprintf("%s%s_%s",
+                   outDir,
+                   gsub(".csv", "", basename(inFile)),
+                   basename(filtFile))
 
 if(!dir.exists(outDir)){
         dir.create(outDir, recursive = T)
@@ -42,6 +43,14 @@ if(!dir.exists(outDir)){
 
 # Functions
 ################################################################################
+
+# Read csv faster
+readCsvFast <- function(f){
+        df <- data.frame(data.table::fread(f))
+        rownames(df) <- df$V1
+        df <- df[, colnames(df) != "V1"]
+        return(df)
+}
 
 # write.csv, but faster
 writeCsvFst <- function(df, file, rowNames = T, colNames = T){
@@ -58,26 +67,22 @@ writeCsvFst <- function(df, file, rowNames = T, colNames = T){
 
 # Load data
 ################################################################################
-metDat <- read.csv(metDatFile, row.names = 1)
-preprocTPMs <- data.frame(data.table::fread(preprocTPMsFile))
-rownames(preprocTPMs) <- preprocTPMs$V1
-preprocTPMs <- preprocTPMs[, colnames(preprocTPMs) != "V1"]
+print(sprintf("Filtering %s to keep only genes included in %s",
+              basename(inFile),
+              basename(filtFile)))
 
-# Filter out samples belonging to queried tisues
+df <- readCsvFast(inFile)
+filtDF <- readCsvFast(filtFile)
+
+# Filter the dataset
 ################################################################################
-tiss2rem <- strsplit(tiss2rem, split = ",")[[1]]
 
+keepGenes <- intersect(colnames(df), filtDF$ensembl_gene_id)
+df <- df[, keepGenes]
 
-boolVec <- !metDat$tissue[match(rownames(preprocTPMs),
-                                make.names(metDat$specimenID))] %in% tiss2rem
-
-preprocTPMs <- preprocTPMs[boolVec, ]
-
-writeCsvFst(preprocTPMs, file = outName)
-
-print(sprintf("%s removed from input dataset.",
-              paste(tiss2rem, collapse = ", ")))
-
-print(sprintf("%s saved in %s",
+# Save the dataset
+################################################################################
+writeCsvFst(df, file = outName)
+print(sprintf("%s saved at %s.",
               basename(outName),
               dirname(outName)))

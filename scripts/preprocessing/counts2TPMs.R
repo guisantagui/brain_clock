@@ -40,6 +40,19 @@ readCsvFast <- function(f){
         return(df)
 }
 
+# write.csv, but faster
+writeCsvFst <- function(df, file, rowNames = T, colNames = T){
+        if(rowNames){
+                rn <- rownames(df)
+                df <- data.table::data.table(df)
+                df[, V1 := rn]
+                data.table::setcolorder(df, c("V1", setdiff(names(df), "V1")))
+        }else{
+                df <- data.table::data.table(df)
+        }
+        data.table::fwrite(df, file, col.names = colNames)
+}
+
 # This function accepts a vector of ensembl IDs and returns info about 
 # the updated version, symbols, start pos, end pos and size
 getENSEMBL_ID_info <- function(ensembl_list,
@@ -173,13 +186,13 @@ TPMs <- counts2TPMs(counts,
 
 
 # Save TPMs dataset
-write.csv(TPMs, outName)
+writeCsvFst(TPMs, outName)
 print(sprintf("%s saved at %s.",
               basename(outName),
               dirname(outName)))
 
 # Save geneInfo Dataset
-write.csv(geneInfo, geneInfoOutName)
+writeCsvFst(geneInfo, geneInfoOutName)
 print(sprintf("%s saved at %s.",
               basename(geneInfoOutName),
               dirname(geneInfoOutName)))

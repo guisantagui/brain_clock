@@ -50,6 +50,19 @@ readCsvFast <- function(f){
         return(df)
 }
 
+# write.csv, but faster
+writeCsvFst <- function(df, file, rowNames = T, colNames = T){
+        if(rowNames){
+                rn <- rownames(df)
+                df <- data.table::data.table(df)
+                df[, V1 := rn]
+                data.table::setcolorder(df, c("V1", setdiff(names(df), "V1")))
+        }else{
+                df <- data.table::data.table(df)
+        }
+        data.table::fwrite(df, file, col.names = colNames)
+}
+
 # Directory stuff
 ################################################################################
 dat <- parsed$input
@@ -71,14 +84,17 @@ dat <- readCsvFast(dat)
 
 # Run SVA
 ################################################################################
+print("Running SVA...")
 edata <- t(dat)
 
+print("Computing the number of SVs...")
 n.sv = num.sv(edata, mod, method="leek")
 
 print(sprintf("Number of surrogate variables detected in %s: %s.",
               basename(dat),
               as.character(n.sv)))
 
+print("Computing the SVs...")
 svobj = sva(edata,
             mod,
             mod0,
@@ -114,7 +130,7 @@ if(saveSVrem){
                               outBaseName,
                               suffixMod)
 
-        write.csv(edata_adj, file = outNameAdj)
+        writeCsvFst(edata_adj, file = outNameAdj)
         print(sprintf("%s saved in %s",
                       basename(outNameAdj),
                       dirname(outNameAdj)))

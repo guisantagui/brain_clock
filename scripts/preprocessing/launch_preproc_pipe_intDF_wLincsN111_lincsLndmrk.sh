@@ -10,9 +10,9 @@
 #SBATCH -c 8
 #SBATCH --time=01-00:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_preproc_pipe_lincs.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_preproc_pipe_lincsLndmrk.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_preproc_pipe_lincs.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_preproc_pipe_lincsLndmrk.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p bigmem
 #SBATCH --qos=normal
@@ -29,14 +29,13 @@ conda activate r-4.3.1
 
 input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_log2_quantNorm_preproc_wLINCS.csv"
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wLINCS.csv"
-#filtDF="/home/users/gsantamaria/projects/brain_clock/data/geneFiltFiles/lincsLndmrkGenes.csv" # "none" for not filtering
-filtDF="none" # "none" for not filtering
+filtDF="/home/users/gsantamaria/projects/brain_clock/data/geneFiltFiles/lincsLndmrkGenes.csv" # "none" for not filtering
 #propZerosRem=0.8
 nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
 #rinFilt=6
-outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_all/"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_lincsLndmrk/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then
