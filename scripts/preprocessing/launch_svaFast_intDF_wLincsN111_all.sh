@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=300GB
 #SBATCH -c 8
-#SBATCH --time=01-00:00:00
+#SBATCH --time=02-00:00:00
 #Define sdout path
 #SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_svaFastAll_lincsLndmrk.txt
 #Define sderr path
