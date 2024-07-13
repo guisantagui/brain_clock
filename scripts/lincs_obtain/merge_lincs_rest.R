@@ -73,8 +73,9 @@ metDat_lincs$RIN <- rep(max(metDat_integ$RIN[!is.na(metDat_integ$RIN)]),
                         nrow(metDat_lincs))
 
 metDat_lincs <- metDat_lincs[, c("specimenID", "diagn_4BrainClck",
-                                 "perturbation", "group", "RIN", "substudy")]
+                                 "perturbation", "group", "RIN", "substudy", "cell")]
 colnames(metDat_lincs) <- gsub("group", "exper_group", colnames(metDat_lincs))
+colnames(metDat_lincs) <- gsub("cell", "tissue", colnames(metDat_lincs))
 
 cols2Add_metDatLincs <- colnames(metDat_integ)[!colnames(metDat_integ) %in% colnames(metDat_lincs)]
 
