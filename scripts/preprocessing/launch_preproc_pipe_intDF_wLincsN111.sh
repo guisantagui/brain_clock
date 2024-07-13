@@ -2,11 +2,11 @@
 #Usage # sbatch [this script]
 #Name of the job
 #SBATCH --job-name=prprcAll
-#SBATCH -N 4
+#SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=100GB
+#SBATCH --mem=300GB
 #SBATCH -c 8
 #SBATCH --time=02-00:00:00
 #Define sdout path
@@ -14,7 +14,7 @@
 #Define sderr path
 #SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_preproc_pipe_lincs.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
-#SBATCH -p batch
+#SBATCH -p bigmem
 #SBATCH --qos=normal
 
 conda activate r-4.3.1
