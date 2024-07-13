@@ -1,14 +1,14 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=preproc
+#SBATCH --job-name=prprcLndmrk
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=300GB
 #SBATCH -c 8
-#SBATCH --time=01-00:00:00
+#SBATCH --time=02-00:00:00
 #Define sdout path
 #SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_preproc_pipe_lincsLndmrk.txt
 #Define sderr path
@@ -102,8 +102,8 @@ batch="${batch}_batches.rds"
 modCombat=$(echo "$noCerebFile" | sed 's/.csv$//')
 modCombat="${modCombat}_combatMod.rds"
 
-Rscript sva_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --saveSVrem --outDir $outDir &
-Rscript sva_exe.R $noCerebFile --mod $mod_all --mod0 $mod0_all --saveSVrem --outDir $outDir &
+Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --saveSVrem --outDir $outDir &
+Rscript sva_fast_exe.R $noCerebFile --mod $mod_all --mod0 $mod0_all --saveSVrem --outDir $outDir &
 Rscript combat_exe.R $noCerebFile --batch $batch --combatMod $modCombat --outDir $outDir &
 wait
 
@@ -130,9 +130,9 @@ wait
 # Run SVA of the three batch effect removal approaches
 # and plot surrogate variables to see if batch effect is 
 # still present (without saving df with regressed-out SVs)
-Rscript sva_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
-Rscript sva_exe.R $svaAdj_all --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
-Rscript sva_exe.R $combatAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
+Rscript sva_fast_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
+Rscript sva_fast_exe.R $svaAdj_all --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
+Rscript sva_fast_exe.R $combatAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
 wait
 
 sva_after_sva_onlyAge=$(echo "$svaAdj_onlyAge" | sed 's/.csv$//')
@@ -178,7 +178,7 @@ pcaCombatAgePMIAdj="${pcaCombatAgePMIAdj}_pca.rds"
 Rscript plotBigPCA_exe.R $pcaCombatAgePMIAdj --metDat $metDat --x PC1 --y PC2 --outDir $outDir
 
 # Run SVA again (only giving age info) to assess if there are any remaining batch effects
-Rscript sva_exe.R $combatAgePMIAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --saveSVrem --outDir $outDir
+Rscript sva_fast_exe.R $combatAgePMIAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --saveSVrem --outDir $outDir
 svaFile=$(echo "$combatAgePMIAdj" | sed 's/.csv$//')
 svaFile="${svaFile}_onlyAge_svobj.rds"
 Rscript sva_plot.R $combatAgePMIAdj --sva $svaFile --metDat $metDat --outDir $outDir
@@ -196,7 +196,7 @@ Rscript plotBigPCA_exe.R $pcaSvaAdj --metDat $metDat --x PC1 --y PC2 --outDir $o
 
 # Run SVA again on this dataset (without saving the dataset with SVs regressed out)
 # to assess if the batch effect has been completely removed.
-Rscript sva_exe.R $svaAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir
+Rscript sva_fast_exe.R $svaAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir
 svaFileFinal=$(echo "$svaAdj" | sed 's/.csv$//')
 svaFileFinal="${svaFileFinal}_onlyAge_svobj.rds"
 Rscript sva_plot.R $svaAdj --sva $svaFileFinal --metDat $metDat --outDir $outDir
