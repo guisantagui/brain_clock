@@ -20,6 +20,7 @@ parser <- add_argument(parser = parser,
                        arg = c("input",
                                "--modFile",
                                "--metDat",
+                               "--respVar",
                                "--ageTransPars",
                                "--sizeBatch",
                                "--mem",
@@ -27,14 +28,14 @@ parser <- add_argument(parser = parser,
                        help = c("Input transcriptomic dataset, features columns, samples rows. CSV.",
                                 "File of the h2o model (generated with mod_train_and_test.R)",
                                 "Metadata file (including ages).",
+                                "Response variable used in the model (age_chron or age_trans).",
                                 "RDS file with Gompertz-Makeham parameters for transformation.",
                                 "Size of each batch for predictions.", 
                                 "Memory to allocate to h2o instance.",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F, F, F, F, F))
+                       flag = c(F, F, F, F, F, F, F, F))
 
 parsed <- parse_args(parser)
-
 
 # Directory stuff
 ################################################################################
@@ -42,6 +43,7 @@ parsed <- parse_args(parser)
 datFile <- parsed$input
 modFile <- parsed$modFile
 metDatFile <- parsed$metDat
+respVar <- parsed$respVar
 ageTransParFile <- parsed$ageTransPars
 sizeBatch <- as.numeric(parsed$sizeBatch)
 mem <- parsed$mem
@@ -161,9 +163,14 @@ for(i in 1:nBatches){
         predVec <- c(predVec, pred)
 }
 
-predsDF <- data.frame(specimenID = names(predVec),
-                      trans_age = predVec,
-                      chron_age = back2Age(predVec))
+if(respVar == "age_trans"){
+        predsDF <- data.frame(specimenID = names(predVec),
+                              trans_age = predVec,
+                              chron_age = back2Age(predVec))
+}else if(respVar == "age_chron"){
+        predsDF <- data.frame(specimenID = names(predVec),
+                              chron_age = predVec)
+}
 
 writeCsvFst(predsDF, file = outName)
 print(sprintf("%s saved in %s.", basename(outName), dirname(outName)))
