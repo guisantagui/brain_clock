@@ -105,7 +105,7 @@ back2Age <- function(transAge){
         return(transAge2Age)
 }
 
-# Predict the age viven the expression matrix and the model
+# Predict the age given the expression matrix and the model
 predictAge <- function(model,
                        predExpr
 ){

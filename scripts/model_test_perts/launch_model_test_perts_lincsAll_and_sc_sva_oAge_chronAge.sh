@@ -21,14 +21,14 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-datFile="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_lincsLndmrk_sva_fast/combined_counts_wTBI_wPert111_log2_quantNorm_preproc_wLINCS_lincsLndmrkGenes_noCerebell_onlyAge_svaAdj.csv"
-modFile="/home/users/gsantamaria/projects/brain_clock/results/models/modLincsLnd_ingegWLincs_svaOnlyAge/modFuncsAlpha0.5/GLM_model_R_1720823823515_1"
+datFile="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_noCerebell_onlyAge_svaAdj.csv"
+modFile="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWLincs_and_sc_sva_chron_age/modFuncsAlpha1/GLM_model_R_1724154505295_1"
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wLINCS.csv"
-respVar="age_trans"
+respVar="age_chron"
 ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
 batchSize=8000
 mem="50G"
-outDir="/home/users/gsantamaria/projects/brain_clock/results/model_test_perts/modLndGenes_integWLincs_sva_oAge/"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/model_test_perts/modAllGenes_integWLincs_sva_oAge_chronAge_alph1/"
 
 # Run the simulations
 ########################################################################################################################

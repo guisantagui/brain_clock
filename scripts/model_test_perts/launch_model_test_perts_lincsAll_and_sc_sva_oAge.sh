@@ -24,6 +24,7 @@ conda activate r-4.3.1
 datFile="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_noCerebell_onlyAge_svaAdj.csv"
 modFile="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWLincs_and_sc_sva/modAllGenes_ingegWLincs_and_sc_sva/modFuncsAlpha0.5/GLM_model_R_1720817453277_1"
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS.csv"
+respVar="age_trans"
 ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
 batchSize=8000
 mem="50G"
@@ -32,6 +33,6 @@ outDir="/home/users/gsantamaria/projects/brain_clock/results/model_test_perts/mo
 # Run the simulations
 ########################################################################################################################
 
-Rscript model_test_perts.R $datFile --modFile $modFile --metDat $metDat --ageTransPars $ageTransPars --sizeBatch $batchSize --mem $mem --outDir $outDir
+Rscript model_test_perts.R $datFile --modFile $modFile --metDat $metDat --respVar $respVar --ageTransPars $ageTransPars --sizeBatch $batchSize --mem $mem --outDir $outDir
 
 conda deactivate
