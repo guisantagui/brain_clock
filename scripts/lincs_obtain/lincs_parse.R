@@ -48,6 +48,19 @@ isCtl <- grepl("ctl", basename(lincs_file))
 # Functions
 ################################################################################
 
+# write.csv, but faster
+writeCsvFst <- function(df, file, rowNames = T, colNames = T){
+        if(rowNames){
+                rn <- rownames(df)
+                df <- data.table::data.table(df)
+                df[, V1 := rn]
+                data.table::setcolorder(df, c("V1", setdiff(names(df), "V1")))
+        }else{
+                df <- data.table::data.table(df)
+        }
+        data.table::fwrite(df, file, col.names = colNames)
+}
+
 # This function accepts a vector of ensembl IDs and returns info about 
 # the updated version, symbols, start pos, end pos and size
 getENSEMBL_ID_info <- function(ensembl_list,
@@ -341,5 +354,5 @@ if(isCtl){
         metDat$group <- rep("expr", nrow(metDat))
 }
 
-write.csv(lincs_mat, outExpName)
-write.csv(metDat, outMetDatName)
+writeCsvFst(lincs_mat, outExpName)
+writeCsvFst(metDat, outMetDatName)
