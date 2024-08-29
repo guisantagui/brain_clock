@@ -22,9 +22,9 @@ conda activate r-4.3.1
 # Variables for the pipeline
 ########################################################################################################################
 gctxFile="/mnt/lscratch/users/gsantamaria/test_large_files/ctl_predicted_RNAseq_profiles.gctx"
-cellType="NPC"
+cellType="NEU"
 batchSize=8000
-outDir="/mnt/lscratch/users/gsantamaria/test_large_files/"
+outDir="/mnt/lscratch/users/gsantamaria/test_large_files/NEU/gctx/"
 
 # Run
 ########################################################################################################################

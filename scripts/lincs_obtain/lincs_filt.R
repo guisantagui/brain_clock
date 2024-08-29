@@ -30,17 +30,34 @@ parser <- add_argument(parser = parser,
 
 parsed <- parse_args(parser)
 
+# Functions
+################################################################################
+
+# Add a / if it's not at the end of a directory string
+addSlashIfNot <- function(pth){
+        lastChar <- substr(pth, nchar(pth), nchar(pth))
+        if(lastChar != "/"){
+                pth <- paste0(pth, "/")
+        }
+        return(pth)
+}
+
+# Create directory if it doesn't exist
+createIfNot <- function(pth){
+        if(!dir.exists(pth)){
+                dir.create(pth, recursive = T)
+        }
+}
+
 # Directory stuff
 ################################################################################
-#gctxFile <- "/mnt/lscratch/users/gsantamaria/test_large_files/cp_predicted_RNAseq_profiles.gctx"
-#cellType <- "NPC"
-#sizeBatch <- 4000
-#outDir <- "/mnt/lscratch/users/gsantamaria/test_large_files/"
 
 gctxFile <- parsed$input
 cellType <- parsed$cellType
 sizeBatch <- as.numeric(parsed$batchSize)
-outDir <- parsed$outDir
+outDir <- addSlashIfNot(parsed$outDir)
+
+createIfNot(outDir)
 
 outName <- gsub(".gctx", "", basename(gctxFile), fixed = T)
 outName <- sprintf("%s%s_%s.gctx", outDir, outName, cellType)
