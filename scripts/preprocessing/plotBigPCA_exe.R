@@ -57,11 +57,16 @@ outName <- gsub(".rds|.RDS", "", basename(bigPCAFile))
 # Functions
 ################################################################################
 pcBiplot <- function(PC, x="PC1", y="PC2", varPlotFilt = NULL, biPlot = F,
-                     colBy = "tissue", colROSMAPBatch = F){
+                     colBy = "tissue", colROSMAPBatch = F, colLINCSCell = F){
         #metDat <- metDat
         if(colROSMAPBatch){
                 metDat$substudy[metDat$substudy == "ROSMAP"] <- paste("ROSMAP",
                                                                       metDat$batch_seq[metDat$substudy == "ROSMAP"],
+                                                                      sep = "_")
+        }
+        if(colLINCSCell){
+                metDat$substudy[metDat$substudy == "LINCS"] <- paste("LINCS",
+                                                                      metDat$tissue[metDat$substudy == "LINCS"],
                                                                       sep = "_")
         }
         data <- data.frame(obsnames=row.names(PC$x), PC$x)
@@ -197,7 +202,8 @@ pca_substudy <- pcBiplot(bigPCA,
                          y = y,
                          colBy = "substudy",
                          biPlot = F,
-                         colROSMAPBatch = T)
+                         colROSMAPBatch = T,
+                         colLINCSCell = T)
 ggsave(plot = pca_substudy,
        filename = sprintf("%s%s_substudy.pdf",
                           outDir,

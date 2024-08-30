@@ -112,7 +112,7 @@ svobj = smartsva.cpp(edata,
                      mod0,
                      n.sv=n.sv)
 
-
+rownames(svobj$sv) <- rownames(dat)
 
 outName <- sprintf("%s%s_%s_svobj.rds",
                    outDir,

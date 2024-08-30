@@ -1,22 +1,27 @@
 ################################################################################
-# Brain clock: this script gets as input the lincs expression data and the     #
-# quantNorm(log2(counts + 1)) integrated dataset (Synapse+TBI+111_perFiles)    #
-# and merges them in a single dataset, which will be the input of the          #
-# processing pipeline (sva etc).                                               #
+# Brain clock: this script gets as input the lincs expression data (NPCs and   #
+# NEUs) and the quantNorm(log2(counts + 1)) integrated dataset                 #
+# (Synapse+TBI+111_perFiles) and merges them in a single dataset, which will   #
+# be the input of the processing pipeline (sva etc).                           #
 ################################################################################
 
-lincsFile <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/lincs_NPC_concat_expMat.csv"
+lincsFile_NPC <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/lincs_NPC_concat_expMat.csv"
+lincsFile_NEU <- "/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/lincs_NEU_concat_expMat.csv"
+lincsFile_MIC <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA-PSEN1/parsed_mats/lincs_MICROGLIA-PSEN1_concat_expMat.csv"
+
 integFile <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc.csv"
 
 metDatInteg <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC.csv"
-metDatLincs <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/lincs_NPC_concat_metDat.csv"
+metDatLincs_NPC <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/lincs_NPC_concat_metDat.csv"
+metDatLincs_NEU <- "/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/lincs_NEU_concat_metDat.csv"
+metDatLincs_MIC <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA-PSEN1/parsed_mats/lincs_MICROGLIA-PSEN1_concat_metDat.csv"
 
 outDir <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/"
 outName <- gsub(".csv", "", basename(integFile))
-outPath <- sprintf("%s%s_wLINCS.csv", outDir, outName)
+outPath <- sprintf("%s%s_wLINCS_wLINCS_NPC_NEU_MIC.csv", outDir, outName)
 
 outNameMetDat <- gsub(".csv", "", basename(metDatInteg))
-outPathMetDat <- sprintf("%s%s_wLINCS.csv", outDir, outNameMetDat)
+outPathMetDat <- sprintf("%s%s_wLINCS_NPC_NEU_MIC.csv", outDir, outNameMetDat)
 # Functions
 ################################################################################
 
@@ -43,12 +48,24 @@ writeCsvFst <- function(df, file, rowNames = T, colNames = T){
 
 # Load data
 ################################################################################
-lincs <- readCsvFst(lincsFile)
+lincs_NPC <- readCsvFst(lincsFile_NPC)
+lincs_NEU <- readCsvFst(lincsFile_NEU)
+lincs_MIC <- readCsvFst(lincsFile_MIC)
 integ <- readCsvFst(integFile)
-lincs <- data.frame(t(lincs))
+lincs_NPC <- data.frame(t(lincs_NPC))
+lincs_NEU <- data.frame(t(lincs_NEU))
+lincs_MIC <- data.frame(t(lincs_MIC))
 
-metDat_lincs <- readCsvFst(metDatLincs)
+metDat_lincs_NPC <- readCsvFst(metDatLincs_NPC)
+metDat_lincs_NEU <- readCsvFst(metDatLincs_NEU)
+metDat_lincs_MIC <- readCsvFst(metDatLincs_MIC)
 metDat_integ <- readCsvFst(metDatInteg)
+
+# Merge LINCS expression and metadata files
+################################################################################
+
+lincs <- rbind.data.frame(lincs_NPC, lincs_NEU, lincs_MIC)
+metDat_lincs <- rbind.data.frame(metDat_lincs_NPC, metDat_lincs_NEU, metDat_lincs_MIC)
 
 # Merge expression files
 ################################################################################

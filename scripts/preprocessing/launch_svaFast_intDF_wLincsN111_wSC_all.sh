@@ -27,8 +27,8 @@ conda activate r-4.3.1
 # Variables for the pipeline
 ########################################################################################################################
 
-input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS.csv"
-metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS.csv"
+input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
+metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
 filtDF="none" # "none" for not filtering
 #propZerosRem=0.8
 nPCs=20
@@ -77,10 +77,10 @@ noCerebFile=$(echo "$filtInput" | sed 's/.csv$//')
 noCerebFile=$(basename $noCerebFile)
 noCerebFile="${outDir}${noCerebFile}_${outTag}.csv"
 
-#Rscript bigPCA_exe.R $noCerebFile --nPCs $nPCs --stand --outDir $outDir
-#pcaNoCerebFile=$(echo "$noCerebFile" | sed 's/.csv$//')
-#pcaNoCerebFile="${pcaNoCerebFile}_pca.rds"
-#Rscript plotBigPCA_exe.R $pcaNoCerebFile --metDat $metDat --x PC1 --y PC2 --outDir $outDir
+Rscript bigPCA_exe.R $noCerebFile --nPCs $nPCs --stand --outDir $outDir
+pcaNoCerebFile=$(echo "$noCerebFile" | sed 's/.csv$//')
+pcaNoCerebFile="${pcaNoCerebFile}_pca.rds"
+Rscript plotBigPCA_exe.R $pcaNoCerebFile --metDat $metDat --x PC1 --y PC2 --outDir $outDir
 
 # Create objects necessary for batch removal steps
 Rscript create_batchRemObjkts.R $noCerebFile --metDat $metDat --outDir $outDir
