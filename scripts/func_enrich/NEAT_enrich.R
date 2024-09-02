@@ -102,7 +102,7 @@ funCoup_filt <- funCoup[funCoup$PFC >= 0.75, ]
 # Get gene sets for each GO biological process in H. sapiens
 
 # Create cache directory to store filtered GO gene sets
-cacheDir <- paste0(rootDir, "cache/")
+cacheDir <- paste0(outDir, "cache/")
 if(!dir.exists(cacheDir)){
         dir.create(cacheDir)
 }

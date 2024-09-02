@@ -66,6 +66,4 @@ The following objects are masked from ‘package:base’:
     intersect, setdiff, setequal, union
 
 
-Error in if (lastChar != "/") { : argument is of length zero
-Calls: addSlashIfNot
-Execution halted
+'select()' returned 1:many mapping between keys and columns

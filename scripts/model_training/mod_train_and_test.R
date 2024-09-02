@@ -624,6 +624,48 @@ ggsave(filename = sprintf("%spredAge60to70ctrlVsHBraak.pdf", outDir),
        width = 4,
        height = 5)
 
+# Do a LM and an ANCOVA to assess if the influence of neurodegeneration on
+# predicted age is significant.
+
+predAgeDF_tst_vs_nd_ancova <- predAgeDF_tst_vs_nd$data[predAgeDF_tst_vs_nd$data$age_death >= min(predAgeDF_tst_vs_nd$data$age_death[predAgeDF_tst_vs_nd$data$group == "nd"]), ]
+
+mod_4Anc <- lm(pred_age ~ age_death * group, data = predAgeDF_tst_vs_nd_ancova)
+
+print("LM")
+print(summary(mod_4Anc))
+capture.output(summary(mod_4Anc),
+               file = sprintf("%s_ND_lmFit_alph%s.txt",
+                              outDir, as.character(alph)))
+
+ancova_mod <- aov(pred_age ~ age_death + group + age_death:group,
+                  data = predAgeDF_tst_vs_nd_ancova)
+
+print("ANCOVA")
+print(summary(ancova_mod))
+capture.output(summary(ancova_mod),
+               file = sprintf("%s_ND_ancovaFit_alph%s.txt",
+                              outDir, as.character(alph)))
+
+ggplot(predAgeDF_tst_vs_nd_ancova, aes(x = age_death, y = pred_age, color = group)) +
+        geom_point() +
+        geom_smooth(method = "lm", se = FALSE) +
+        labs(x = respVar, y = "pred_age") +
+        theme(axis.text.y = element_text(size=15),
+              axis.text.x = element_text(size=15),
+              axis.title = element_text(size=20),
+              panel.background = element_blank(),
+              panel.grid.major = element_line(colour = "gray"), 
+              panel.grid.minor = element_blank(),
+              legend.text = element_text(size=12),
+              legend.title = element_blank(),
+              axis.line = element_line(colour = "black"),
+              axis.line.y = element_line(colour = "black"),
+              panel.border = element_rect(colour = "black",
+                                          fill=NA, linewidth = 1))
+ggsave(sprintf("%sctrls_highBraak_diagn_alpha%s_wLines.pdf", outDir, alph), 
+       height = 8,
+       width = 9)
+
 
 # Obtain boxplots of predicted age in each braak stage in each decade, from
 # 60 to 100
