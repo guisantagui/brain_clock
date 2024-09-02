@@ -73,7 +73,7 @@ addSlashIfNot <- function(pth){
 inFile <- parsed$DE
 outName <- parsed$outName
 funCoupFile <- parsed$FCFile
-outDir <- addSlashIfNot(parsed$out)
+outDir <- addSlashIfNot(parsed$outDir)
 
 createIfNot(outDir)
 
