@@ -39,13 +39,33 @@ library(GO.db)
 parser <- arg_parser("NEAT functional erichment analyisis.")
 
 parser <- add_argument(parser = parser,
-                       arg = c("--DE", "--outName", "--FCFile"),
+                       arg = c("--DE", "--outName", "--FCFile", "--outDir"),
                        help = c("Differentially expressed genes file",
                                 "Name given to the output file",
-                                "Path to FunCoup file"),
-                       flag = c(F, F, F))
+                                "Path to FunCoup file",
+                                "Output directory to save the results."),
+                       flag = c(F, F, F, F))
 
 parsed <- parse_args(parser)
+
+# Functions
+################################################################################
+
+# Create directory if it doesn't exist
+createIfNot <- function(pth){
+        if(!dir.exists(pth)){
+                dir.create(pth, recursive = T)
+        }
+}
+
+# Add a / if it's not at the end of a directory string
+addSlashIfNot <- function(pth){
+        lastChar <- substr(pth, nchar(pth), nchar(pth))
+        if(lastChar != "/"){
+                pth <- paste0(pth, "/")
+        }
+        return(pth)
+}
 
 # Directory stuff
 ################################################################################
@@ -53,24 +73,11 @@ parsed <- parse_args(parser)
 inFile <- parsed$DE
 outName <- parsed$outName
 funCoupFile <- parsed$FCFile
+outDir <- addSlashIfNot(parsed$out)
 
-rootDir <- inFile %>% dirname() %>% dirname() %>% dirname() %>% paste0("/")
+createIfNot(outDir)
 
-resuDir <- paste0(rootDir, "results")
-resuEnrichDir <- paste0(resuDir, "enrichment/")
-resuNEATDir <- paste0(resuEnrichDir, "NEAT/")
-
-if(!dir.exists(resuDir)){
-        dir.create(resuDir)
-}
-
-if(!dir.exists(resuEnrichDir)){
-        dir.create(resuEnrichDir)
-}
-
-if(!dir.exists(resuNEATDir)){
-        dir.create(resuNEATDir)
-}
+outName <- paste0(outDir, outName)
 
 # Load and parse data
 ################################################################################
@@ -144,12 +151,6 @@ if(!file.exists(paste0(goGeneSets_file))){
 # removing any gene that is not included in the FunCoup interaction file.
 neat_input <- rownames(DE_genes)
 
-#neat_input <- mapIds(org.Hs.eg.db,
-#                     keys = neat_input,
-#                     keytype = "SYMBOL",
-#                     column = "ENSEMBL",
-#                     fuzzy = T)
-
 neat_input <- neat_input[!is.na(neat_input)]
 
 neat_input <- neat_input[neat_input %in% c(funCoup_filt$Gene1,
@@ -176,6 +177,6 @@ neat_result$ontology <- mapIds(org.Hs.eg.db,
                                column = "ONTOLOGY",
                                keytype = "GO")
 
-write.csv(neat_result, paste0(resuNEATDir, outName))
+write.csv(neat_result, outName)
 print(sprintf("NEAT analysis done. %s saved at %s",
-              outName, resuNEATDir))
+              basename(outName), dirname(resuNEATDir)))

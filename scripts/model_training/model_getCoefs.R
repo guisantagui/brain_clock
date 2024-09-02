@@ -84,6 +84,8 @@ colnames(nonZeroCoefs) <- gsub("names",
                                "ensembl_gene_id",
                                colnames(nonZeroCoefs))
 
+rownames(nonZeroCoefs) <- nonZeroCoefs$ensembl_gene_id
+
 writeCsvFst(nonZeroCoefs, outName)
 
 print(sprintf("%s saved in %s.", basename(outName), dirname(outName)))

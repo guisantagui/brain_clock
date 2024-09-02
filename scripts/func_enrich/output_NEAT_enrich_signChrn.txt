@@ -1,0 +1,3 @@
+/home/users/gsantamaria/.local/bin is already in path.
+datasets already exists in /home/users/gsantamaria/.local/bin
+dataformat already exists in /home/users/gsantamaria/.local/bin

@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=300GB
 #SBATCH -c 8
-#SBATCH --time=14-00:00:00
+#SBATCH --time=00-03:00:00
 #Define sdout path
 #SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_svaFastAll_lincsLndmrk.txt
 #Define sderr path
@@ -23,19 +23,21 @@ conda activate r-4.3.1
 # consisting of synapse.org datasets, TBI, 111 compilation of GEO obtained by Sascha and Javier for brain specific
 # cell types and NPC samples of LINCS1000 (level 3), and SC data from ageAnno. This dataset has been already
 # preprocessed in terms of removal of samples with low RIN, variables, samples with high proportion of zeros, etc. 
+# Previous to doing sva filters the genes to keep only the ones that had non-zero coefficients in the fitting of
+# the GLM with all the genes using transformed age as response variable.
 
 # Variables for the pipeline
 ########################################################################################################################
 
 input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
-filtDF="none" # "none" for not filtering
+filtDF="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWLincs_and_sc_sva_trans_age/modFuncsAlpha0.5_coefs.csv" # "none" for not filtering
 #propZerosRem=0.8
 nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
 #rinFilt=6
-outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast/"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_filtSignTrans/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then
