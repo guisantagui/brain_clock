@@ -195,6 +195,49 @@ plotAgeInt <- function(dfBraak, ageInt, color = NULL){
         return(plt)
 }
 
+# Given an age interval, dfBraak and outName, fits a linear model on braak
+# index and pred_age for individuals not classified and controls, and 
+# writes out the summary.
+getModPredAgeVsBraak <- function(df,
+                                 age_int = NULL,
+                                 outName = NULL,
+                                 doPlot = T){
+        if(!is.null(age_int)){
+                df <- df[df$ageInt == age_int, ]
+        }
+        df <- df[df$braak != "control", ]
+        df$braak <- as.numeric(df$braak)
+        lMod <- lm(pred_age ~ braak, df)
+        print(summary(lMod))
+        if(!is.null(outName)){
+                capture.output(summary(lMod),
+                               file = outName)
+        }
+        if(doPlot){
+                plt <- ggplot(data = df, mapping = aes(x = braak, y = pred_age)) +
+                        geom_point() +
+                        geom_smooth(method = "lm", se = FALSE) +
+                        theme(axis.text.y = element_text(size=15),
+                              axis.text.x = element_text(size=15),
+                              axis.title = element_text(size=20),
+                              panel.background = element_blank(),
+                              panel.grid.major = element_line(colour = "gray"), 
+                              panel.grid.minor = element_blank(),
+                              legend.text = element_text(size=12),
+                              legend.title = element_blank(),
+                              axis.line = element_line(colour = "black"),
+                              axis.line.y = element_line(colour = "black"),
+                              panel.border = element_rect(colour = "black",
+                                                          fill=NA,
+                                                          linewidth = 1))
+                if(!is.null(outName)){
+                        plotName <- gsub(".txt", ".pdf", outName)
+                        ggsave(plotName, plot = plt, height = 8, width = 9)
+                }
+                return(plt)
+        }
+}
+
 # Load and parse data
 ################################################################################
 
@@ -759,5 +802,30 @@ ggsave(filename = sprintf("%spredAg_byBraakAndAge_alph%s.pdf",
                           outDir, alph),
        width = 10,
        height = 6)
+
+# Assesss if the relationship between braak index and predicted age is 
+getModPredAgeVsBraak(dfBraak,
+                     outName = sprintf("%s_ND_lmFit_alph%s_all.txt",
+                                       outDir, as.character(alph)))
+
+getModPredAgeVsBraak(dfBraak,
+                     age_int = "60_70",
+                     outName = sprintf("%s_ND_lmFit_alph%s_60_70.txt",
+                                       outDir, as.character(alph)))
+
+getModPredAgeVsBraak(dfBraak,
+                     age_int = "70_80",
+                     outName = sprintf("%s_ND_lmFit_alph%s_70_80.txt",
+                                       outDir, as.character(alph)))
+
+getModPredAgeVsBraak(dfBraak,
+                     age_int = "80_90",
+                     outName = sprintf("%s_ND_lmFit_alph%s_80_90.txt",
+                                       outDir, as.character(alph)))
+
+getModPredAgeVsBraak(dfBraak,
+                     age_int = "90_100",
+                     outName = sprintf("%s_ND_lmFit_alph%s_90_100.txt",
+                                       outDir, as.character(alph)))
 
 h2o.shutdown(prompt = F)
