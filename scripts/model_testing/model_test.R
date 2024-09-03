@@ -1,5 +1,6 @@
 ################################################################################
-# Brain clock: test the perturbations in the pert samples.                     #
+# Brain clock: test predicted age of a pre-filtered set of samples, either     #
+# perturbation or single cell.                                                 #
 ################################################################################
 if(!require(argparser, quietly = T)){
         install.packages("argparser", repos='http://cran.us.r-project.org')

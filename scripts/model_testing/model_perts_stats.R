@@ -1,7 +1,7 @@
 ################################################################################
 # Brain clock: test for statistical significance of the differences in         #
 # predicted ages of the perturbations in the pert samples. In particular,      #
-# xompute t-test and wilcoxon test p values for both predicted chronological   #
+# compute t-test and wilcoxon test p values for both predicted chronological   #
 # and transformed ages, and adjust p value with BH method.                     #
 ################################################################################
 
@@ -18,7 +18,7 @@ parser <- add_argument(parser = parser,
                        arg = c("input",
                                "--respVar",
                                "--metDat"),
-                       help = c("Predicted ages dataframe of perturbations (generated with model_test_perts.R).",
+                       help = c("Predicted ages dataframe of perturbations (generated with model_test.R).",
                                 "Response variable used to fit the model to (age_chron or age_trans).",
                                 "Metadata file"),
                        flag = c(F, F, F))
