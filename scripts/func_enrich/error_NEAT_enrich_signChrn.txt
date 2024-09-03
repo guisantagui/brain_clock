@@ -67,3 +67,8 @@ The following objects are masked from ‘package:base’:
 
 
 'select()' returned 1:many mapping between keys and columns
+'select()' returned 1:many mapping between keys and columns
+Error in h(simpleError(msg, call)) : 
+  error in evaluating the argument 'path' in selecting a method for function 'dirname': object 'resuNEATDir' not found
+Calls: print -> sprintf -> dirname -> .handleSimpleError -> h
+Execution halted

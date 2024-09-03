@@ -201,7 +201,9 @@ plotAgeInt <- function(dfBraak, ageInt, color = NULL){
 getModPredAgeVsBraak <- function(df,
                                  age_int = NULL,
                                  outName = NULL,
-                                 doPlot = T){
+                                 doPlot = T,
+                                 savePlt = F,
+                                 plotEq = T){
         if(!is.null(age_int)){
                 df <- df[df$ageInt == age_int, ]
         }
@@ -213,11 +215,26 @@ getModPredAgeVsBraak <- function(df,
                 capture.output(summary(lMod),
                                file = outName)
         }
+        if(plotEq){
+                fStat <- summary(lMod)$f
+                pVal <- pf(fStat[1], fStat[2], fStat[3], lower.tail = F)
+                eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2*","~~italic(p-value)~"="~pVal, 
+                                 list(a = format(unname(coef(lMod)[1]), digits = 2),
+                                      b = format(unname(coef(lMod)[2]), digits = 2),
+                                      r2 = format(summary(lMod)$r.squared, digits = 3),
+                                      pVal = format(unname(pVal), digits = 3)))
+                eq <- as.character(as.expression(eq))
+                eq <- paste0("atop(",
+                             gsub("(x) * \",\"", "(x),", eq, fixed = T),
+                             ")")
+        }
         if(doPlot){
                 plt <- ggplot(data = df, mapping = aes(x = braak, y = pred_age)) +
                         geom_point() +
                         geom_smooth(method = "lm", se = FALSE) +
-                        theme(axis.text.y = element_text(size=15),
+                        labs(x = "Braak index", y = "predicted age") +
+                        theme(title = element_text(size = 20),
+                              axis.text.y = element_text(size=15),
                               axis.text.x = element_text(size=15),
                               axis.title = element_text(size=20),
                               panel.background = element_blank(),
@@ -230,9 +247,35 @@ getModPredAgeVsBraak <- function(df,
                               panel.border = element_rect(colour = "black",
                                                           fill=NA,
                                                           linewidth = 1))
-                if(!is.null(outName)){
+                if(!is.null(age_int)){
+                        tit <- gsub("_", " to ", age_int)
+                        plt <- plt +
+                                ggtitle(tit)
+                }
+                if(!is.null(outName) & savePlt){
                         plotName <- gsub(".txt", ".pdf", outName)
-                        ggsave(plotName, plot = plt, height = 8, width = 9)
+                        ggsave(plotName,
+                               plot = plt,
+                               height = 8,
+                               width = 9)
+                }
+                if(plotEq){
+                        xRange <- layer_scales(plt)$x$range$range
+                        yRange <- layer_scales(plt)$y$range$range
+                        if(lMod$coefficients[2] > 0.3){
+                                xPos <- min(xRange) + abs(min(xRange) + 1.4)
+                                yPos <- max(yRange) - abs(max(yRange) * 0.01)
+                        }else if(lMod$coefficients[2] <= 0.3 & lMod$coefficients[2] > 0){
+                                xPos <- max(xRange) - abs(max(xRange) * .6)
+                                yPos <- min(yRange) + abs(min(yRange) * 0.05)
+                        }else{
+                                xPos <- max(xRange) - abs(max(xRange) * .6)
+                                yPos <- max(yRange) - abs(max(yRange) * 0.05)
+                        }
+                        plt <- plt +
+                                geom_label(x = xPos,
+                                           y = yPos,
+                                           label = eq, parse = TRUE)
                 }
                 return(plt)
         }
@@ -805,27 +848,46 @@ ggsave(filename = sprintf("%spredAg_byBraakAndAge_alph%s.pdf",
 
 # Assesss if the relationship between braak index and predicted age is 
 getModPredAgeVsBraak(dfBraak,
-                     outName = sprintf("%s_ND_lmFit_alph%s_all.txt",
-                                       outDir, as.character(alph)))
+                     outName = sprintf("%sND_lmFit_alph%s_all.txt",
+                                       outDir, as.character(alph)),
+                     savePlt = T,
+                     plotEq = T)
 
-getModPredAgeVsBraak(dfBraak,
-                     age_int = "60_70",
-                     outName = sprintf("%s_ND_lmFit_alph%s_60_70.txt",
-                                       outDir, as.character(alph)))
+nd_lmPlt_60_70 <- getModPredAgeVsBraak(dfBraak,
+                                       age_int = "60_70",
+                                       outName = sprintf("%sND_lmFit_alph%s_60_70.txt",
+                                                         outDir,
+                                                         as.character(alph)),
+                                       plotEq = T)
 
-getModPredAgeVsBraak(dfBraak,
-                     age_int = "70_80",
-                     outName = sprintf("%s_ND_lmFit_alph%s_70_80.txt",
-                                       outDir, as.character(alph)))
+nd_lmPlt_70_80 <- getModPredAgeVsBraak(dfBraak,
+                                       age_int = "70_80",
+                                       outName = sprintf("%sND_lmFit_alph%s_70_80.txt",
+                                                         outDir,
+                                                         as.character(alph)),
+                                       plotEq = T)
 
-getModPredAgeVsBraak(dfBraak,
-                     age_int = "80_90",
-                     outName = sprintf("%s_ND_lmFit_alph%s_80_90.txt",
-                                       outDir, as.character(alph)))
+nd_lmPlt_80_90 <- getModPredAgeVsBraak(dfBraak,
+                                       age_int = "80_90",
+                                       outName = sprintf("%sND_lmFit_alph%s_80_90.txt",
+                                                         outDir,
+                                                         as.character(alph)),
+                                       plotEq = T)
 
-getModPredAgeVsBraak(dfBraak,
-                     age_int = "90_100",
-                     outName = sprintf("%s_ND_lmFit_alph%s_90_100.txt",
-                                       outDir, as.character(alph)))
+nd_lmPlt_90_100 <- getModPredAgeVsBraak(dfBraak,
+                                        age_int = "90_100",
+                                        outName = sprintf("%sND_lmFit_alph%s_90_100.txt",
+                                                          outDir,
+                                                          as.character(alph)),
+                                        plotEq = T)
+ggarrange(plotlist = list(nd_lmPlt_60_70,
+                          nd_lmPlt_70_80,
+                          nd_lmPlt_80_90,
+                          nd_lmPlt_90_100))
+
+ggsave(filename = sprintf("%sND_lmFit_alph%s_byAge.pdf",
+                          outDir, as.character(alph)),
+       width = 13,
+       height = 10)
 
 h2o.shutdown(prompt = F)
