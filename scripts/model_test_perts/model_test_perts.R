@@ -23,6 +23,7 @@ parser <- add_argument(parser = parser,
                                "--respVar",
                                "--ageTransPars",
                                "--sizeBatch",
+                               "--whatSampsTest",
                                "--mem",
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features columns, samples rows. CSV.",
@@ -31,9 +32,10 @@ parser <- add_argument(parser = parser,
                                 "Response variable used in the model (age_chron or age_trans).",
                                 "RDS file with Gompertz-Makeham parameters for transformation.",
                                 "Size of each batch for predictions.", 
+                                "What samples should be tested. Possible values are perturbation or single_cell.",
                                 "Memory to allocate to h2o instance.",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F, F, F, F, F, F))
+                       flag = c(F, F, F, F, F, F, F, F, F))
 
 parsed <- parse_args(parser)
 
@@ -46,6 +48,7 @@ metDatFile <- parsed$metDat
 respVar <- parsed$respVar
 ageTransParFile <- parsed$ageTransPars
 sizeBatch <- as.numeric(parsed$sizeBatch)
+whatSampsTest <- parsed$whatSampsTest
 mem <- parsed$mem
 outDir <- parsed$outDir
 
@@ -137,9 +140,15 @@ metDat <- readCsvFast(metDatFile)
 vals <- readRDS(ageTransParFile)
 vals <- round(vals,6) #Makes the parameters more readable with little loss of accuracy
 
-# Keep only perturbated samples
-pertSamps <- metDat$specimenID[metDat$diagn_4BrainClck == "perturbations"]
-dat <- dat[make.names(pertSamps), ]
+# Keep only either perturbated samples or single cell samples
+if(whatSampsTest == "perturbation"){
+        filtSamps <- metDat$specimenID[metDat$diagn_4BrainClck == "perturbations"]
+}else if(whatSampsTest == "single_cell"){
+        filtSamps <- metDat$specimenID[metDat$substudy == "ageAnno"]
+}
+
+dat <- dat[make.names(filtSamps), ]
+
 
 # Initialize h2o and load model
 conn <- h2o.init(max_mem_size=mem)
