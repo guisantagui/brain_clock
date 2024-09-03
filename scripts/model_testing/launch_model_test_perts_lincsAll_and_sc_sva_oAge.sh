@@ -27,12 +27,13 @@ metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/comb
 respVar="age_trans"
 ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
 batchSize=8000
+whatSampsTest="perturbation"
 mem="50G"
 outDir="/home/users/gsantamaria/projects/brain_clock/results/model_test_perts/modAllGenes_integWLincs_and_sc_sva_oAge/"
 
 # Run the simulations
 ########################################################################################################################
 
-Rscript model_test_perts.R $datFile --modFile $modFile --metDat $metDat --respVar $respVar --ageTransPars $ageTransPars --sizeBatch $batchSize --mem $mem --outDir $outDir
+Rscript model_test.R $datFile --modFile $modFile --metDat $metDat --respVar $respVar --ageTransPars $ageTransPars --sizeBatch $batchSize --whatSampsTest $whatSampsTest --mem $mem --outDir $outDir
 
 conda deactivate
