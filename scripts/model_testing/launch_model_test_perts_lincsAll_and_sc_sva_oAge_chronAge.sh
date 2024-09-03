@@ -29,7 +29,7 @@ ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/
 batchSize=8000
 whatSampsTest="perturbation"
 mem="50G"
-outDir="/home/users/gsantamaria/projects/brain_clock/results/model_test_perts/modAllGenes_integWLincs_sva_oAge_chronAge_alph1/"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/model_test_perts/modAllGenes_integWLincs_and_sc_oAge_chronAge_alph1/"
 
 # Run the simulations
 ########################################################################################################################
