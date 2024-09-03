@@ -203,30 +203,47 @@ getModPredAgeVsBraak <- function(df,
                                  outName = NULL,
                                  doPlot = T,
                                  savePlt = F,
-                                 plotEq = T){
+                                 plotEq = T,
+                                 accountChronAge = F){
+        #df <- dfBraak
+        #age_int <- NULL
         if(!is.null(age_int)){
                 df <- df[df$ageInt == age_int, ]
         }
         df <- df[df$braak != "control", ]
         df$braak <- as.numeric(df$braak)
-        lMod <- lm(pred_age ~ braak, df)
+        
+        if(accountChronAge){
+                lMod <- lm(pred_age ~ braak + age_death, df)
+        }else{
+                lMod <- lm(pred_age ~ braak, df)
+        }
         print(summary(lMod))
         if(!is.null(outName)){
                 capture.output(summary(lMod),
                                file = outName)
         }
         if(plotEq){
-                fStat <- summary(lMod)$f
-                pVal <- pf(fStat[1], fStat[2], fStat[3], lower.tail = F)
-                eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2*","~~italic(p-value)~"="~pVal, 
-                                 list(a = format(unname(coef(lMod)[1]), digits = 2),
-                                      b = format(unname(coef(lMod)[2]), digits = 2),
-                                      r2 = format(summary(lMod)$r.squared, digits = 3),
-                                      pVal = format(unname(pVal), digits = 3)))
-                eq <- as.character(as.expression(eq))
-                eq <- paste0("atop(",
-                             gsub("(x) * \",\"", "(x),", eq, fixed = T),
-                             ")")
+                if(!accountChronAge){
+                        fStat <- summary(lMod)$f
+                        pVal <- pf(fStat[1], fStat[2], fStat[3], lower.tail = F)
+                        eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2*","~~italic(p-value)~"="~pVal, 
+                                         list(a = format(unname(coef(lMod)[1]), digits = 2),
+                                              b = format(unname(coef(lMod)[2]), digits = 2),
+                                              r2 = format(summary(lMod)$r.squared, digits = 3),
+                                              pVal = format(unname(pVal), digits = 3)))
+                        eq <- as.character(as.expression(eq))
+                        eq <- paste0("atop(",
+                                     gsub("(x) * \",\"", "(x),", eq, fixed = T),
+                                     ")")
+                }else{
+                        summ <- summary(lMod)
+                        braak_pVal <- summ$coefficients["braak", 4]
+                        eq <- substitute("Braak index's" ~~italic(p-value)~"="~braak_pVal,
+                                         list(braak_pVal = format(unname(braak_pVal), digits = 3)))
+                        eq <- as.character(as.expression(eq))
+                }
+                
         }
         if(doPlot){
                 plt <- ggplot(data = df, mapping = aes(x = braak, y = pred_age)) +
@@ -846,7 +863,8 @@ ggsave(filename = sprintf("%spredAg_byBraakAndAge_alph%s.pdf",
        width = 10,
        height = 6)
 
-# Assesss if the relationship between braak index and predicted age is 
+# Assesss if the relationship between braak index and predicted age is
+# significant
 getModPredAgeVsBraak(dfBraak,
                      outName = sprintf("%sND_lmFit_alph%s_all.txt",
                                        outDir, as.character(alph)),
@@ -886,6 +904,56 @@ ggarrange(plotlist = list(nd_lmPlt_60_70,
                           nd_lmPlt_90_100))
 
 ggsave(filename = sprintf("%sND_lmFit_alph%s_byAge.pdf",
+                          outDir, as.character(alph)),
+       width = 13,
+       height = 10)
+
+# Assess relationship between braak index and predicted age, accounting
+# for chronoligical age (pred age ~ braak + chron_age)
+
+getModPredAgeVsBraak(dfBraak,
+                     outName = sprintf("%sND_lmFit_alph%s_all_accChronAge.txt",
+                                       outDir, as.character(alph)),
+                     savePlt = T,
+                     plotEq = T,
+                     accountChronAge = T)
+
+nd_lmPlt_60_70_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
+                                                   age_int = "60_70",
+                                                   outName = sprintf("%sND_lmFit_alph%s_60_70_accChronAge.txt",
+                                                                     outDir,
+                                                                     as.character(alph)),
+                                                   plotEq = T,
+                                                   accountChronAge = T)
+nd_lmPlt_70_80_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
+                                                   age_int = "70_80",
+                                                   outName = sprintf("%sND_lmFit_alph%s_70_80_accChronAge.txt",
+                                                                     outDir,
+                                                                     as.character(alph)),
+                                                   plotEq = T,
+                                                   accountChronAge = T)
+nd_lmPlt_80_90_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
+                                                   age_int = "80_90",
+                                                   outName = sprintf("%sND_lmFit_alph%s_80_90_accChronAge.txt",
+                                                                     outDir,
+                                                                     as.character(alph)),
+                                                   plotEq = T,
+                                                   accountChronAge = T)
+nd_lmPlt_90_100_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
+                                                    age_int = "90_100",
+                                                    outName = sprintf("%sND_lmFit_alph%s_90_100_accChronAge.txt",
+                                                                      outDir,
+                                                                      as.character(alph)),
+                                                    plotEq = T,
+                                                    accountChronAge = T)
+
+
+ggarrange(plotlist = list(nd_lmPlt_60_70_accCrhonAge,
+                          nd_lmPlt_70_80_accCrhonAge,
+                          nd_lmPlt_80_90_accCrhonAge,
+                          nd_lmPlt_90_100_accCrhonAge))
+
+ggsave(filename = sprintf("%sND_lmFit_alph%s_byAge_accCrhonAge.pdf",
                           outDir, as.character(alph)),
        width = 13,
        height = 10)

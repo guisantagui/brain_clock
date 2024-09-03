@@ -179,4 +179,4 @@ neat_result$ontology <- mapIds(org.Hs.eg.db,
 
 write.csv(neat_result, outName)
 print(sprintf("NEAT analysis done. %s saved at %s",
-              basename(outName), dirname(resuNEATDir)))
+              basename(outName), dirname(outName)))
