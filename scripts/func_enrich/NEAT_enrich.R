@@ -1,9 +1,8 @@
 ################################################################################
-# CureMILS project:                                                            #
-# PROTEOMICS: NEAT Enrichment. The input must be a dataframe (.csv file) where #
-# the rownames are ENSEMBL IDs, as well as the file of the FunCoup database.   #
-#  Output is a CSV file with the results of the NEAT enrichment for each one   #
-# of the pathways.                                                             #
+# Brain clock: NEAT Enrichment. The input must be a dataframe (.csv file)      #
+# where the rownames are ENSEMBL IDs, as well as the file of the FunCoup       #
+# database. Output is a CSV file with the results of the NEAT enrichment for   #
+# each one of the pathways.                                                    #
 ################################################################################
 
 if(!require(argparser, quietly = T)){
