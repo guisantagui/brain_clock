@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=300GB
 #SBATCH -c 8
-#SBATCH --time=14-00:00:00
+#SBATCH --time=00-02:00:00
 #Define sdout path
 #SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_svaFastAll_lincsLndmrk.txt
 #Define sderr path
@@ -21,9 +21,11 @@ conda activate r-4.3.1
 
 # This version of the preproc pipeline uses as input the quantNorm(log(counts + 1)) of the integrated dataset,
 # consisting of synapse.org datasets, TBI, 111 compilation of GEO obtained by Sascha and Javier for brain specific
-# cell types and NPC, NEU and MIC samples of LINCS1000 (level 3), and SC data from ageAnno. This dataset has been
-# already preprocessed in terms of removal of samples with low RIN, variables, samples with high proportion of zeros,
-# etc. 
+# cell types, and SC data from ageAnno. LINCS samples are excluded, as this analysis is done to validate the approach
+# of doing SVA in these samples and fit a model to predict surrogate variables on new data. We will test this in LINCS
+# to assess if these samples are brought close to the ones that were actually SVAed.
+# Input dataset has been already preprocessed in terms of removal of samples with low RIN, variables, samples with high
+# proportion of zeros, etc. 
 
 # Variables for the pipeline
 ########################################################################################################################
@@ -35,9 +37,9 @@ filtDF="none" # "none" for not filtering
 nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
-excludeSubstudy="none" # "none" for not excluding any substudy before the preprocessing
+excludeSubstudy="LINCS"
 #rinFilt=6
-outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain/"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_excldLINCS/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then
@@ -48,7 +50,7 @@ fi
 if [ "$filtDF" != "none" ]; then
     filtOutName=$(dirname $input)
     filtOutName="$filtOutName/"
-    Rscript filt_genes.R $input --filtFile $filtDF --metDat $metDat --excludeSubstudy $excludeSubstudy --outDir $filtOutName
+    Rscript filt_genes.R $input --filtFile $filtDF --outDir $filtOutName
     filtDF_bn=$(basename "$filtDF")
     filtInput=$(echo "$input" | sed 's/.csv$//')
     filtInput="${filtInput}_${filtDF_bn}"

@@ -86,7 +86,7 @@ print(sprintf("Filtering %s to keep only genes included in %s",
 df <- readCsvFast(inFile)
 filtDF <- readCsvFast(filtFile)
 
-if(!is.na(excludeSubstudy)){
+if(!is.na(excludeSubstudy) & (excludeSubstudy != "none")){
         metDat <- readCsvFast(metDatFile)
 }
 
@@ -98,7 +98,7 @@ keepGenes <- intersect(colnames(df), filtDF$ensembl_gene_id)
 df <- df[, keepGenes]
 
 # If indicated, exclude the samples in the indicated substudy from the dataset
-if(!is.na(excludeSubstudy)){
+if(!is.na(excludeSubstudy) & (excludeSubstudy != "none")){
         keepSamps <- metDat$specimenID[metDat$substudy != excludeSubstudy]
         keepSamps <- make.names(keepSamps)
         df <- df[keepSamps, ]
