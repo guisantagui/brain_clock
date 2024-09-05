@@ -31,7 +31,7 @@ outDir="/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/"
 
 # Run
 ########################################################################################################################
-files_with_cType=$(find $gctxDir -type f -exec grep -l $cellType {} +)
+files_with_cType=$(find "$gctxDir" -type f -name "*$cellType*")
 
 # Optionally, you can iterate over each file
 for file in $files_with_cType; do
