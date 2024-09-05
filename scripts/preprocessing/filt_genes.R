@@ -17,11 +17,20 @@ parser <- arg_parser("Run SVA.")
 parser <- add_argument(parser = parser,
                        arg = c("input",
                                "--filtFile",
+                               "--metDat",
+                               "--excludeSubstudy",
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features in columns, samples rows. CSV.",
                                 "File with ENSEMBL IDs of genes that are going to be kept, in a column called ensembl_gene_id_orig.",
+                                "Metadata file",
+                                "If a substudy is indicated, samples belonging to it will be filtered out.",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F))
+                       flag = c(F, F, F, F, F),
+                       default = list("input" = NA,
+                                      "--filtFile" = NA,
+                                      "--metDat" = NA,
+                                      "--excludeSubstudy" = NA,
+                                      "--outDir" = NA))
 
 parsed <- parse_args(parser)
 
@@ -30,12 +39,15 @@ parsed <- parse_args(parser)
 
 inFile <- parsed$input
 filtFile <- parsed$filtFile
+metDatFile <- parsed$metDat
+excludeSubstudy <- parsed$excludeSubstudy
 outDir <- parsed$outDir
 
 outName <- sprintf("%s%s_%s",
                    outDir,
                    gsub(".csv", "", basename(inFile)),
                    basename(filtFile))
+
 
 if(!dir.exists(outDir)){
         dir.create(outDir, recursive = T)
@@ -74,11 +86,24 @@ print(sprintf("Filtering %s to keep only genes included in %s",
 df <- readCsvFast(inFile)
 filtDF <- readCsvFast(filtFile)
 
+if(!is.na(excludeSubstudy)){
+        metDat <- readCsvFast(metDatFile)
+}
+
 # Filter the dataset
 ################################################################################
 
+# Keep the genes included in filtDF
 keepGenes <- intersect(colnames(df), filtDF$ensembl_gene_id)
 df <- df[, keepGenes]
+
+# If indicated, exclude the samples in the indicated substudy from the dataset
+if(!is.na(excludeSubstudy)){
+        keepSamps <- metDat$specimenID[metDat$substudy != excludeSubstudy]
+        keepSamps <- make.names(keepSamps)
+        df <- df[keepSamps, ]
+}
+
 
 # Save the dataset
 ################################################################################
