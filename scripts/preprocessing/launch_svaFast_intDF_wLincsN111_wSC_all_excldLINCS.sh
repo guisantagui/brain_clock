@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=svaFastAll
+#SBATCH --job-name=svaFastNoLINCS
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
@@ -10,9 +10,9 @@
 #SBATCH -c 8
 #SBATCH --time=00-02:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_svaFastAll_lincsLndmrk.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_svaFastAll_noLINCS.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_svaFastAll_lincsLndmrk.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_svaFastAll_noLINCS.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p bigmem
 #SBATCH --qos=long
@@ -50,7 +50,7 @@ fi
 if [ "$filtDF" != "none" ]; then
     filtOutName=$(dirname $input)
     filtOutName="$filtOutName/"
-    Rscript filt_genes.R $input --filtFile $filtDF --outDir $filtOutName
+    Rscript filt_genes.R $input --filtFile $filtDF --metDat $metDat --excludeSubstudy $excludeSubstudy --outDir $filtOutName
     filtDF_bn=$(basename "$filtDF")
     filtInput=$(echo "$input" | sed 's/.csv$//')
     filtInput="${filtInput}_${filtDF_bn}"
