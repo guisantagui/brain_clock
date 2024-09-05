@@ -737,7 +737,7 @@ mod_4Anc <- lm(pred_age ~ age_death * group, data = predAgeDF_tst_vs_nd_ancova)
 print("LM")
 print(summary(mod_4Anc))
 capture.output(summary(mod_4Anc),
-               file = sprintf("%s_ND_lmFit_alph%s.txt",
+               file = sprintf("%sND_lm_pred_vs_chronND_alph%s.txt",
                               outDir, as.character(alph)))
 
 ancova_mod <- aov(pred_age ~ age_death + group + age_death:group,
@@ -746,7 +746,7 @@ ancova_mod <- aov(pred_age ~ age_death + group + age_death:group,
 print("ANCOVA")
 print(summary(ancova_mod))
 capture.output(summary(ancova_mod),
-               file = sprintf("%s_ND_ancovaFit_alph%s.txt",
+               file = sprintf("%sND_ancova_alph%s.txt",
                               outDir, as.character(alph)))
 
 ggplot(predAgeDF_tst_vs_nd_ancova, aes(x = age_death, y = pred_age, color = group)) +
