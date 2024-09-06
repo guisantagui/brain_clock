@@ -19,6 +19,8 @@ if(!require("SmartSVA", quietly = T)){
         install.packages("SmartSVA", repos='http://cran.us.r-project.org')
 }
 library(SmartSVA)
+if(!require(sva, quietly = T)) BiocManager::install("sva", update = F)
+library(sva)
 
 
 
@@ -30,14 +32,16 @@ parser <- add_argument(parser = parser,
                        arg = c("input",
                                "--mod",
                                "--mod0",
+                               "--nSV_method",
                                "--saveSVrem",
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features in columns, samples rows. CSV.",
                                 "Full model RDS object.",
                                 "Null model RDS object.",
+                                "Method used to compute the number of surrogate variables (leek or RMT)",
                                 "If a csv file with the SVs regressed out should be created",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F, T, F))
+                       flag = c(F, F, F, F, T, F))
 
 parsed <- parse_args(parser)
 
@@ -70,6 +74,7 @@ writeCsvFst <- function(df, file, rowNames = T, colNames = T){
 datFile <- parsed$input
 mod <- parsed$mod
 mod0 <- parsed$mod0
+nSV_method <- parsed$nSV_method
 saveSVrem <- parsed$saveSVrem
 outDir <- parsed$outDir
 
@@ -90,17 +95,22 @@ print("Running SVA...")
 edata <- t(dat)
 
 print("Computing the number of SVs...")
-df <- data.frame(matrix(mod[, colnames(mod) != "(Intercept)"],
+if(nSV_method == "RMT"){
+        df <- data.frame(matrix(mod[, colnames(mod) != "(Intercept)"],
                         nrow = nrow(mod),
                         ncol = ncol(mod) - 1,
                         dimnames = list(rownames(mod),
                                         colnames(mod)[colnames(mod) != "(Intercept)"])))
-## Determine the number of SVs
-df_vars <- paste(colnames(df), collapse = " + ")
-formula_str <- sprintf("t(edata) ~ %s", df_vars)
+        ## Determine the number of SVs
+        df_vars <- paste(colnames(df), collapse = " + ")
+        formula_str <- sprintf("t(edata) ~ %s", df_vars)
 
-Y.r <- t(resid(lm(as.formula(formula_str), data=df)))
-n.sv <- EstDimRMT(Y.r, FALSE)$dim + 1
+        Y.r <- t(resid(lm(as.formula(formula_str), data=df)))
+        n.sv <- EstDimRMT(Y.r, FALSE)$dim + 1
+}else if(nSV_method == "leek"){
+        n.sv = num.sv(edata, mod, method="leek")
+}
+
 
 print(sprintf("Number of surrogate variables detected in %s: %s.",
               basename(datFile),

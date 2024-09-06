@@ -36,6 +36,7 @@ nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
 excludeSubstudy="none" # "none" for not excluding any substudy before the preprocessing
+nSV_method="leek"
 #rinFilt=6
 outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain/"
 
@@ -104,7 +105,7 @@ batch="${batch}_batches.rds"
 modCombat=$(echo "$noCerebFile" | sed 's/.csv$//')
 modCombat="${modCombat}_combatMod.rds"
 
-Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --saveSVrem --outDir $outDir &
+Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir &
 #Rscript sva_exe.R $noCerebFile --mod $mod_all --mod0 $mod0_all --saveSVrem --outDir $outDir &
 #Rscript combat_exe.R $noCerebFile --batch $batch --combatMod $modCombat --outDir $outDir &
 wait
@@ -132,7 +133,7 @@ wait
 # Run SVA of the three batch effect removal approaches
 # and plot surrogate variables to see if batch effect is 
 # still present (without saving df with regressed-out SVs)
-Rscript sva_fast_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
+Rscript sva_fast_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --outDir $outDir &
 #Rscript sva_exe.R $svaAdj_all --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
 #Rscript sva_exe.R $combatAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
 wait
