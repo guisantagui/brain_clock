@@ -48,11 +48,13 @@ parser <- arg_parser("scRNAseq preprocessing")
 parser <- add_argument(parser = parser,
                        arg = c("--preProcDir",
                                "--method",
+                               "--cellCycleFile",
                                "--sketch"),
                        help = c("Directory where folders containing the RDS file for each sample are stored.",
                                 "Integration method, either CCA or RPCA.",
+                                "File with genes involved in the cell cycle",
                                 "If sketch integration should be performed (subsampling, for large datasets)"),
-                       flag = c(F, F, T))
+                       flag = c(F, F, F, T))
 
 parsed <- parse_args(parser)
 
@@ -61,14 +63,15 @@ parsed <- parse_args(parser)
 
 resuPrepDir <- parsed$preProcDir
 intMethod <- parsed$method
+cellCycleFile <- parsed$cellCycleFile
 sketch <- parsed$sketch
 tissue <- basename(resuPrepDir)
 
-resuPrepDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/aging/results/preprocessing/brain"
-intMethod <- "rpca"
-cellCycleFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/aging/data/utility_files/CellCycleGenes_Human.csv"
-sketch <- T
-tissue <- basename(resuPrepDir)
+#resuPrepDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/aging/results/preprocessing/brain"
+#intMethod <- "rpca"
+#cellCycleFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/aging/data/utility_files/CellCycleGenes_Human.csv"
+#sketch <- T
+#tissue <- basename(resuPrepDir)
 
 plotIntgDir <- resuPrepDir %>%
         dirname() %>%
