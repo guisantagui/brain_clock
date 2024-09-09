@@ -38,6 +38,7 @@ library(patchwork)
 library(SeuratData)
 library(dplyr)
 library(ggplot2)
+library(biomaRt)
 
 # Terminal argument parser
 ################################################################################
@@ -61,6 +62,12 @@ parsed <- parse_args(parser)
 resuPrepDir <- parsed$preProcDir
 intMethod <- parsed$method
 sketch <- parsed$sketch
+tissue <- basename(resuPrepDir)
+
+resuPrepDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/aging/results/preprocessing/brain"
+intMethod <- "rpca"
+cellCycleFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/aging/data/utility_files/CellCycleGenes_Human.csv"
+sketch <- T
 tissue <- basename(resuPrepDir)
 
 plotIntgDir <- resuPrepDir %>%
@@ -95,13 +102,33 @@ mkdir_ifNot(plotIntgDir)
 # stored
 getPreprocFiles <- function(prepDir){
         prepFiles <- list.files(prepDir, full.names = T)# %>%
-                #list.files(full.names = T)
+        #list.files(full.names = T)
         RDataFiles <- prepFiles[grep("RData", prepFiles)]
         rdsFiles <- prepFiles[grep("rds", prepFiles)]
         out <- list(RData = RDataFiles,
                     rds = rdsFiles)
         return(out)
 }
+
+# Load and parse data
+################################################################################
+
+cellCycGenes <- read.csv(cellCycleFile)
+
+mart <- useDataset("hsapiens_gene_ensembl", useMart(biomart = "ensembl"))
+
+ensToSymb <- getBM(filters= "ensembl_gene_id",
+                   attributes= c("ensembl_gene_id","hgnc_symbol"),
+                   values=cellCycGenes$geneID,mart= mart)
+
+cellCycGenes <- merge(cellCycGenes,
+                      ensToSymb,
+                      by.x = 2,
+                      by.y = 1,
+                      all.x = T)
+
+g2m_genes <- cellCycGenes$hgnc_symbol[cellCycGenes$phase == "G2/M"]
+s_genes <- cellCycGenes$hgnc_symbol[cellCycGenes$phase == "S"]
 
 # Integration
 ################################################################################
@@ -116,19 +143,48 @@ if(sketch){
                 f <- prepFiles$rds[i]
                 samp <- gsub(".rds", "", basename(f))
                 seur <- readRDS(f)
+                seur <- UpdateSeuratObject(seur)
                 seurList[[samp]] <- seur
         }
         seurComb <- merge(seurList[[1]], y = seurList[2:length(seurList)],
                           add.cell.ids = names(seurList), project = "Samples")
         seurComb$sample <- gsub(".*_", "", colnames(seurComb@assays$SCT$data))
-        seurComb@assays$SCT
-        DefaultAssay(seurComb) <- "SCT"
-
-        seurComb <- SCTransform(seurComb,
-                                vars.to.regress = "CC.Difference",
-                                vst.flavor = "v2",
-                                verbose = T,
-                                assay = "RNA")
+        DefaultAssay(seurComb) <- "RNA"
+        seurComb <- NormalizeData(seurComb, assay = "RNA")
+        g2m_genes <- intersect(g2m_genes, rownames(seurComb))
+        s_genes <- intersect(s_genes, rownames(seurComb))
+        seurComb <- CellCycleScoring(seurComb,
+                                     s.features = s_genes,
+                                     g2m.features = g2m_genes)
+        
+        seurComb[["RNA"]] <- split(seurComb[["RNA"]], f = seurComb$sample)
+        seurComb <- FindVariableFeatures(seurComb, verbose = F, assay = "RNA")
+        seurComb <- SketchData(object = seurComb,
+                               ncells = 5000,
+                               method = "LeverageScore",
+                               sketched.assay = "sketch")
+        ### Integration on the sketched cells accross samples
+        DefaultAssay(seurComb) <- "sketch"
+        seurComb <- FindVariableFeatures(seurComb, verbose = F)
+        
+        seurComb <- ScaleData(seurComb,
+                              vars.to.regress = c("S.Score",
+                                                  "G2M.Score",
+                                                  "percent.mito"))
+        seurComb <- RunPCA(seurComb, verbose = F)
+        # integrate the datasets
+        if(intMethod == "rpca"){
+                integrated <- IntegrateLayers(seurComb,
+                                              method = RPCAIntegration,
+                                              orig = "pca",
+                                              new.reduction = "integrated.rpca",
+                                              k.weight = 40)
+        }else if(intMethod == "cca"){
+                integrated <- IntegrateLayers(seurComb,
+                                              method = CCAIntegration,
+                                              orig = "pca",
+                                              new.reduction = "integrated.rpca")
+        }
 }else{
         # Create a list with each sample's scTransformed seurat object
         seurList <- list()
@@ -166,8 +222,6 @@ if(sketch){
                                     normalization.method = "SCT",
                                     k.weight = kWeight)
 }
-
-
 
 # Save integrated RDS file
 saveRDS(integrated, file = outFile)
