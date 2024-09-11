@@ -30,14 +30,14 @@ conda activate r-4.3.1
 # Variables for the pipeline
 ########################################################################################################################
 
-input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
+input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc.csv"
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
 filtDF="none" # "none" for not filtering
 #propZerosRem=0.8
 nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
-excludeSubstudy="LINCS"
+excludeSubstudy="none"
 nSV_method="leek"
 #rinFilt=6
 outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_excldLINCS/"
@@ -48,7 +48,7 @@ if [ ! -d "$outDir" ]; then
 fi
 
 # Filter input dataframe, if specified
-if [ "$filtDF" != "none" ]; then
+if [[ "$filtDF" != "none" || "$excludeSubstudy" != "none" ]]; then
     filtOutName=$(dirname $input)
     filtOutName="$filtOutName/"
     Rscript filt_genes.R $input --filtFile $filtDF --metDat $metDat --excludeSubstudy $excludeSubstudy --outDir $filtOutName
@@ -107,7 +107,7 @@ batch="${batch}_batches.rds"
 modCombat=$(echo "$noCerebFile" | sed 's/.csv$//')
 modCombat="${modCombat}_combatMod.rds"
 
-Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir &
+Rscript sva_fast_exe_remWOInclAge.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir &
 #Rscript sva_exe.R $noCerebFile --mod $mod_all --mod0 $mod0_all --saveSVrem --outDir $outDir &
 #Rscript combat_exe.R $noCerebFile --batch $batch --combatMod $modCombat --outDir $outDir &
 wait
@@ -135,7 +135,7 @@ wait
 # Run SVA of the three batch effect removal approaches
 # and plot surrogate variables to see if batch effect is 
 # still present (without saving df with regressed-out SVs)
-Rscript sva_fast_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --outDir $outDir &
+Rscript sva_fast_exe_remWOInclAge.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --outDir $outDir &
 #Rscript sva_exe.R $svaAdj_all --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
 #Rscript sva_exe.R $combatAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
 wait
