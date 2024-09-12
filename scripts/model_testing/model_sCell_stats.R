@@ -18,11 +18,13 @@ parser <- arg_parser("Train the GLM on transformed age and assess performance.")
 parser <- add_argument(parser = parser,
                        arg = c("input",
                                "--respVar",
-                               "--metDat"),
+                               "--metDat",
+                               "--excludeYoung"),
                        help = c("Predicted ages dataframe of sc samples (generated with model_test.R).",
                                 "Response variable used to fit the model to (age_chron or age_trans).",
-                                "Metadata file"),
-                       flag = c(F, F, F))
+                                "Metadata file",
+                                "If samples below 18 YO should be removed prior of running the analysis."),
+                       flag = c(F, F, F, T))
 
 parsed <- parse_args(parser)
 
@@ -120,6 +122,58 @@ getLMod <- function(df, respVar, cellType = NULL){
         return(out)
 }
 
+# Run young vs old univariate test and plot it
+run_young_vs_old <- function(df, respVar, youngThrshld = 30, oldThrshld = 70,
+                             test = "wilcox.test", cell){
+        df$group <- rep(NA, nrow(df))
+        df$group[df$age_death <= youngThrshld] <- "young"
+        df$group[df$age_death >= oldThrshld] <- "old"
+        df <- df[!is.na(df$group), ]
+        df$group <- factor(df$group, levels = c("young", "old"))
+        if(test == "wilcox.test"){
+                pVal <- wilcox.test(df[df$group == "young", respVar],
+                                    df[df$group == "old", respVar])$p.val
+        }else if(test == "t.test"){
+                pVal <- t.test(df[df$group == "young", respVar],
+                               df[df$group == "old", respVar])$p.val
+        }
+        
+        statSymbDF <- data.frame(value = c(1, 0.1, 0.05, 0.01, 0.001),
+                                 symbol = c("ns", ".", "*", "**", "***"))
+        symb <- statSymbDF$symbol[max(which(pVal <= statSymbDF$value))]
+        maxY <- max(df[, respVar])
+        maxY <- maxY + max(maxY) * .025
+        signifDF <- data.frame(x = 1,
+                               xend = 2,
+                               y = maxY,
+                               annotation = symb)
+        plt <- ggplot(df, aes(x = group, y = !!sym(respVar))) +
+                geom_boxplot(outlier.shape = NA) +
+                geom_jitter() +
+                labs(title = gsub(".", " ", cell, fixed = T),
+                     y = "predicted age") +
+                theme(title = ggtext::element_markdown(size = 20),
+                      axis.text.x = ggtext::element_markdown(size = 15),
+                      axis.title.y = ggtext::element_markdown(size = 15),
+                      axis.title.x = element_blank(),
+                      legend.text = ggtext::element_markdown(),
+                      panel.background = element_blank(),
+                      panel.border = element_rect(colour = "black", fill=NA,
+                                                  linewidth = 1),
+                      panel.grid.major = element_line(colour = "#d4d4d4")) +
+                geom_signif(stat = "identity",
+                            data = signifDF,
+                            aes(x=x, xend=xend,
+                                y=y,
+                                yend=y,
+                                fill = NULL,
+                                annotation = annotation,
+                                #group = group,
+                                col = NULL))
+        out <- list(p_value = pVal, plot = plt)
+        return(out)
+}
+
 # Directory stuff
 ################################################################################
 #predFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/model_test_sCell/modAllGenes_integWLincs_and_sc_oAge_chronAge_alph1/pred_ages.csv"
@@ -129,6 +183,7 @@ getLMod <- function(df, respVar, cellType = NULL){
 predFile <- parsed$input
 respVar <- parsed$respVar
 metDatFile <- parsed$metDat
+excludeYoung <- parsed$excludeYoung
 
 outName <- sprintf("%s/pred_ages_stats.csv",
                    dirname(predFile))
@@ -143,6 +198,14 @@ metDat <- readCsvFast(metDatFile)
 # Keep only ageAnno samples
 metDat <- metDat[metDat$substudy == "ageAnno", ]
 
+if(excludeYoung){
+        keepSamps <- metDat$specimenID[metDat$ageDeath >= 18]
+        preds <- preds[preds$specimenID %in% keepSamps, ]
+        metDat <- metDat[metDat$specimenID %in% preds$specimenID, ]
+        #metDat <- metDat[!grepl("mid7", metDat$specimenID), ] #Try to remove mid7
+        #metDat <- metDat[!grepl(paste(ols, collapse = "|"), metDat$specimenID), ]
+        preds <- preds[preds$specimenID %in% metDat$specimenID, ]
+}
 # Test for statistical significance of association between chronological age
 # and predicted age for each cell type
 ################################################################################
@@ -154,10 +217,12 @@ if(respVar == "age_chron"){
         pltChronLst <- list()
         uniqCells <- unique(unique(metDat$tissue))
         cellStatsDF <- data.frame(matrix(nrow = 0,
-                                         ncol = 2,
+                                         ncol = 3,
                                          dimnames = list(NULL,
                                                          c("cell_type",
-                                                           "pVal_chron_age"))))
+                                                           "pVal_chron_age",
+                                                           "young_vs_old_chron_pVal"))))
+        univPltChrnLst <- list()
         for(cell in uniqCells){
                 df_cell <- data.frame(specimenID = metDat$specimenID[metDat$tissue == cell],
                                       age_death = metDat$ageDeath[metDat$tissue == cell])
@@ -173,7 +238,15 @@ if(respVar == "age_chron"){
                 pltChronLst[[cell]] <- plotChron
                 toBind <- data.frame(cell_type = cell,
                                      pVal_chron_age = pValChron)
+                univ_chron <- run_young_vs_old(df_cell,
+                                               "chron_age",
+                                               cell = cell,
+                                               test = "wilcox.test",
+                                               youngThrshld = 30,
+                                               oldThrshld = 70)
+                toBind$young_vs_old_chron_pVal <- univ_chron$p_value
                 cellStatsDF <- rbind.data.frame(cellStatsDF, toBind)
+                univPltChrnLst[[cell]] <- univ_chron$plot
         }
         cellStatsDF$pAdj_chron_age <- p.adjust(cellStatsDF$pVal_chron_age,
                                                method = "BH")
@@ -185,16 +258,27 @@ if(respVar == "age_chron"){
         plotChronAllCellsName <- sprintf("%slm_chron_age_vs_pred_chron_age_allCellTyp.pdf",
                                          outDir)
         ggsave(plotChronAllCellsName, chronPlotsComb, height = 8, width = 12)
+        
+        chronUnivPlotsComb <- ggarrange(plotlist = univPltChrnLst,
+                                        ncol = ncolCombPlot,
+                                        nrow = nrowCombPlot)
+        chronUnivPlotsName <- sprintf("%suniv_chron_age_young_vs_old.pdf",
+                                      outDir)
+        ggsave(chronUnivPlotsName, chronUnivPlotsComb, height = 10, width = 10)
 }else if(respVar == "age_trans"){
         pltChronLst <- list()
         pltTransLst <- list()
+        univPltChrnLst <- list()
+        univPltTrnsLst <- list()
         uniqCells <- unique(unique(metDat$tissue))
         cellStatsDF <- data.frame(matrix(nrow = 0,
-                                         ncol = 3,
+                                         ncol = 5,
                                          dimnames = list(NULL,
                                                          c("cell_type",
                                                            "pVal_chron_age",
-                                                           "pVal_trans_age"))))
+                                                           "pVal_trans_age",
+                                                           "young_vs_old_chron_pVal",
+                                                           "young_vs_old_trans_pVal"))))
         for(cell in uniqCells){
                 df_cell <- data.frame(specimenID = metDat$specimenID[metDat$tissue == cell],
                                       age_death = metDat$ageDeath[metDat$tissue == cell])
@@ -221,7 +305,23 @@ if(respVar == "age_chron"){
                 toBind <- data.frame(cell_type = cell,
                                      pVal_chron_age = pValChron,
                                      pVal_trans_age = pValTrans)
+                univ_chron <- run_young_vs_old(df_cell,
+                                               "chron_age",
+                                               cell = cell,
+                                               test = "wilcox.test",
+                                               youngThrshld = 30,
+                                               oldThrshld = 70)
+                univ_trans <- run_young_vs_old(df_cell,
+                                               "trans_age",
+                                               cell = cell,
+                                               test = "wilcox.test",
+                                               youngThrshld = 30,
+                                               oldThrshld = 70)
+                toBind$young_vs_old_chron_pVal <- univ_chron$p_value
+                toBind$young_vs_old_trans_pVal <- univ_trans$p_value
                 cellStatsDF <- rbind.data.frame(cellStatsDF, toBind)
+                univPltChrnLst[[cell]] <- univ_chron$plot
+                univPltTrnsLst[[cell]] <- univ_trans$plot
         }
         cellStatsDF$pAdj_chron_age <- p.adjust(cellStatsDF$pVal_chron_age,
                                                method = "BH")
@@ -241,6 +341,16 @@ if(respVar == "age_chron"){
                                          outDir)
         ggsave(plotChronAllCellsName, chronPlotsComb, height = 8, width = 12)
         ggsave(plotTransAllCellsName, transPlotsComb, height = 8, width = 12)
+        
+        chronUnivPlotsComb <- ggarrange(plotlist = univPltChrnLst,
+                                        ncol = ncolCombPlot,
+                                        nrow = nrowCombPlot)
+        transUnivPlotsComb <- ggarrange(plotlist = univPltTrnsLst,
+                                        ncol = ncolCombPlot,
+                                        nrow = nrowCombPlot)
+        transUnivPlotsName <- sprintf("%suniv_trans_age_young_vs_old.pdf",
+                                      outDir)
+        ggsave(transUnivPlotsName, transUnivPlotsComb, height = 10, width = 10)
 }
 
 writeCsvFst(cellStatsDF, file = outName)

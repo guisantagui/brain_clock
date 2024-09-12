@@ -73,7 +73,11 @@ print(sprintf("Running univariate tests of %s (%s)...",
               basename(pertFile),
               basename(dirname(pertFile))))
 
-uniqPerts <- unique(metDat$perturbation)
+uniqPerts <- unique(paste(metDat$perturbation,
+                          metDat$tissue, sep = "_"))
+
+metDat$pert_cell <- paste(metDat$perturbation,
+                          metDat$tissue, sep = "_")
 
 if(respVar == "age_trans"){
         pert_stats_DF <- data.frame(matrix(nrow = 0,
@@ -92,7 +96,7 @@ if(respVar == "age_trans"){
         for(i in seq_along(uniqPerts)){
                 setTxtProgressBar(pb, i)
                 p <- uniqPerts[i]
-                metDat_p <- metDat[metDat$perturbation == p & metDat$perturbation != "none", ]
+                metDat_p <- metDat[metDat$pert_cell == p & metDat$perturbation != "none", ]
                 cTypes <- unique(metDat_p$tissue)
                 cTypeVec <- c()
                 for(j in seq_along(cTypes)){
@@ -157,7 +161,7 @@ if(respVar == "age_trans"){
         for(i in seq_along(uniqPerts)){
                 setTxtProgressBar(pb, i)
                 p <- uniqPerts[i]
-                metDat_p <- metDat[metDat$perturbation == p & metDat$perturbation != "none", ]
+                metDat_p <- metDat[metDat$pert_cell == p & metDat$perturbation != "none", ]
                 cTypes <- unique(metDat_p$tissue)
                 cTypeVec <- c()
                 for(j in seq_along(cTypes)){
