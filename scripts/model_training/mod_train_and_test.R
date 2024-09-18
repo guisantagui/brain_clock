@@ -35,6 +35,7 @@ parser <- add_argument(parser = parser,
                                "--ageTransPars",
                                "--alpha",
                                "--mem",
+                               "--preFiltGenes",
                                "--braakThrshld",
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features columns, samples rows. CSV.",
@@ -43,9 +44,10 @@ parser <- add_argument(parser = parser,
                                 "RDS file with Gompertz-Makeham parameters for transformation.",
                                 "Alpha value for the elastic net.",
                                 "Memory to allocate to h2o instance.",
+                                "CSV file with genes to be prefiltered previous to the fitting. Has to have a column called 'ensembl_gene_id'. If set to 'none' all the genes will be used",
                                 "Braak score threshold for considering samples neurodegenerated.",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F, F, F, F, F, F))
+                       flag = c(F, F, F, F, F, F, F, F, F))
 
 parsed <- parse_args(parser)
 
@@ -58,6 +60,7 @@ respVar <- parsed$respVar
 ageTransParFile <- parsed$ageTransPars
 alph <- as.numeric(parsed$alpha)
 mem <- parsed$mem
+preFiltGenes <- parsed$preFiltGenes
 braakThrshld <- as.numeric(parsed$braakThrshld)
 outDir <- parsed$outDir
 
@@ -306,6 +309,13 @@ metDat <- read.csv(metDatFile, row.names = 1)
 dat <- data.frame(data.table::fread(dataFile))
 rownames(dat) <- dat$V1
 dat <- dat[, colnames(dat) != "V1"]
+
+if (preFiltGenes != "none"){
+        preFilt <- read.csv(preFiltGenes, row.names = 1)
+        keepGenes <- preFilt$ensembl_gene_id
+        keepGenes <- keepGenes[!grepl("Intercept", keepGenes)]
+        dat <- dat[, colnames(dat) %in% keepGenes]
+}
 
 # Load Gompertz-Makeham parameters
 if(respVar == "age_trans"){

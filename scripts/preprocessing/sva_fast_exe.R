@@ -143,7 +143,7 @@ if(saveSVrem){
         mod4adj <- model.matrix(~age_death,
                                 data = data.frame(age_death = mod[, "age_death"]))
 
-        edata_adj <- removeBatchEffect(edata, covariates = svobj$sv, design = mod4adj)
+        edata_adj <- removeBatchEffect(edata, covariates = svobj$sv)
 
         edata_adj <- t(edata_adj)
 

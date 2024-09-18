@@ -21,7 +21,7 @@ conda activate r-4.3.1
 
 # This version of the preproc pipeline uses as input the quantNorm(log(counts + 1)) of the integrated dataset,
 # consisting of synapse.org datasets, TBI, 111 compilation of GEO obtained by Sascha and Javier for brain specific
-# cell types and NPC samples of LINCS1000 (level 3), and SC data from ageAnno. This dataset has been already
+# cell types and brain cell samples of LINCS1000 (level 3), and SC data from ageAnno. This dataset has been already
 # preprocessed in terms of removal of samples with low RIN, variables, samples with high proportion of zeros, etc. 
 # Previous to doing sva filters the genes to keep only the ones that had non-zero coefficients in the fitting of
 # the GLM with all the genes using chronological age as response variable.
@@ -31,13 +31,15 @@ conda activate r-4.3.1
 
 input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
-filtDF="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWLincs_and_sc_sva_chron_age/modFuncsAlpha1_coefs.csv" # "none" for not filtering
+filtDF="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age/modFuncsAlpha1_coefs.csv" # "none" for not filtering
 #propZerosRem=0.8
 nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
+excludeSubstudy="none" # "none" for not excluding any substudy before the preprocessing
+nSV_method="leek"
 #rinFilt=6
-outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_filtSignChron/"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then
@@ -104,7 +106,7 @@ batch="${batch}_batches.rds"
 modCombat=$(echo "$noCerebFile" | sed 's/.csv$//')
 modCombat="${modCombat}_combatMod.rds"
 
-Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --saveSVrem --outDir $outDir &
+Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir &
 #Rscript sva_exe.R $noCerebFile --mod $mod_all --mod0 $mod0_all --saveSVrem --outDir $outDir &
 #Rscript combat_exe.R $noCerebFile --batch $batch --combatMod $modCombat --outDir $outDir &
 wait
@@ -132,7 +134,7 @@ wait
 # Run SVA of the three batch effect removal approaches
 # and plot surrogate variables to see if batch effect is 
 # still present (without saving df with regressed-out SVs)
-Rscript sva_fast_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
+Rscript sva_fast_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --outDir $outDir &
 #Rscript sva_exe.R $svaAdj_all --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
 #Rscript sva_exe.R $combatAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
 wait

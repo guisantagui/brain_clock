@@ -17,6 +17,10 @@
 #SBATCH -p batch
 #SBATCH --qos=normal
 
+# This version prefilters the genes before the fitting to keep the ones that were significant in the SC model
+# (obtained with mod_train_sc.R) and the ones that were significant with the bulk data after SVAing the whole matrix
+# with all LINCS brain cell types, etc.
+
 conda activate r-4.3.1
 
 # Variables for the pipeline
@@ -25,11 +29,11 @@ data="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_L
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
 respVar="age_chron"
 ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
-alpha="1"
+alpha="0"
 mem="24G"
-preFiltGenes="none"
+preFiltGenes="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_SCmod_chron_age/fullMod_andSCMod_genes.csv" # Combined genes with non-zero coefficients of SC model and full model
 braakThrshld="4"
-outDir="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age/"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age_scSignAndFullModSignPreFilt/"
 
 # Train the model
 ########################################################################################################################
