@@ -36,6 +36,7 @@ parser <- add_argument(parser = parser,
                                "--alpha",
                                "--mem",
                                "--preFiltGenes",
+                               "--lambda",
                                "--braakThrshld",
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features columns, samples rows. CSV.",
@@ -45,9 +46,10 @@ parser <- add_argument(parser = parser,
                                 "Alpha value for the elastic net.",
                                 "Memory to allocate to h2o instance.",
                                 "CSV file with genes to be prefiltered previous to the fitting. Has to have a column called 'ensembl_gene_id'. If set to 'none' all the genes will be used",
+                                "If set, lambda search will be done. Otherwise it will be set to zero and no regularization will be done.",
                                 "Braak score threshold for considering samples neurodegenerated.",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F, F, F, F, F, F, F))
+                       flag = c(F, F, F, F, F, F, F, T, F, F))
 
 parsed <- parse_args(parser)
 
@@ -61,6 +63,7 @@ ageTransParFile <- parsed$ageTransPars
 alph <- as.numeric(parsed$alpha)
 mem <- parsed$mem
 preFiltGenes <- parsed$preFiltGenes
+lambdaFlag <- parsed$lambda
 braakThrshld <- as.numeric(parsed$braakThrshld)
 outDir <- parsed$outDir
 
@@ -397,8 +400,13 @@ colnames(train4Mod)[1] <- respVar
 conn <- h2o.init(max_mem_size=mem)
 trainData_h2o <- as.h2o(train4Mod)
 
-lambda <- NULL
-lambda_search <- T
+if(lambdaFlag){
+        lambda <- NULL
+        lambda_search <- T
+}else{
+        lambda <- 0
+        lambda_search <- F
+}
 
 model <- h2o.glm(y = respVar,
                  training_frame = trainData_h2o,

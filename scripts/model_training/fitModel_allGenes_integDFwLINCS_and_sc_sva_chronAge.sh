@@ -33,7 +33,7 @@ outDir="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_
 
 # Train the model
 ########################################################################################################################
-Rscript mod_train_and_test.R $data --metDat $metDat --respVar $respVar --ageTransPars $ageTransPars --alpha $alpha --mem $mem --preFiltGenes $preFiltGenes --braakThrshld $braakThrshld --outDir $outDir
+Rscript mod_train_and_test.R $data --metDat $metDat --respVar $respVar --ageTransPars $ageTransPars --alpha $alpha --mem $mem --preFiltGenes $preFiltGenes --lambda --braakThrshld $braakThrshld --outDir $outDir
 
 modFile="${outDir}modFuncsAlpha${alpha}.rds"
 
