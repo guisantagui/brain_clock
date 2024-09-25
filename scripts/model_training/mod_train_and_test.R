@@ -9,19 +9,25 @@
 if(!require(argparser, quietly = T)){
         install.packages("argparser", repos='http://cran.us.r-project.org')
 }
-library(argparser)
+if(!require(rstatix, quietly = T)){
+        install.packages("rstatix", repos='http://cran.us.r-project.org')
+}
 if(!require(limma, quietly = T)) BiocManager::install("limma", update = F)
 if(!require("h2o", quietly = T)){
         install.packages("h2o",
                          type="source",
                          repos="https://h2o-release.s3.amazonaws.com/h2o/rel-3.46.0/2/R")
 }
-library(h2o)
 if(!require("ggplot2")) install.packages("ggplot2",
                                          repos='https://pbil.univ-lyon1.fr/CRAN/')
-library(ggplot2)
 if(!require("ggpubr")) install.packages("ggpubr",
                                         repos='https://pbil.univ-lyon1.fr/CRAN/')
+
+library(argparser)
+library(rstatix)
+library(limma)
+library(h2o)
+library(ggplot2)
 library(ggpubr)
 
 # Terminal argument parser
@@ -507,6 +513,15 @@ if(respVar == "age_trans"){
                            value = c(h2o.r2(model, train = T),
                                      unlist(model@model$cross_validation_metrics_summary["r2", -c(1, 2)]),
                                      metrics_chronAge$value[metrics_chronAge$metric == "r2"]))
+        dfmae <- data.frame(mae_type = factor(c("mae_training",
+                                              rep("mae_cv",
+                                                  length(model@model$cross_validation_metrics_summary["mae", -c(1, 2)])), "mae_test"),
+                                            levels = c("mae_training",
+                                                       "mae_cv",
+                                                       "mae_test")),
+                           value = c(h2o.mae(model, train = T),
+                                     unlist(model@model$cross_validation_metrics_summary["mae", -c(1, 2)]),
+                                     metrics_chronAge$value[metrics_chronAge$metric == "mae"]))
 }
 
 
@@ -526,12 +541,15 @@ ggplot(data = dfr2, mapping = aes(x = r2_type, y = value)) +
         scale_x_discrete(limits = c("r2_training",
                                     "r2_cv",
                                     "r2_test"),
-                         labels = c("r2_training" = "R2 training",
-                                    "r2_cv" = "R2 CV",
-                                    "r2_test" = "R2 test")) +
+                         labels = c("r2_training" = "train set",
+                                    "r2_cv" = "cross-validation",
+                                    "r2_test" = "test set")) +
+        ylab(expression(R^2)) +
+        ylim(c(floor(min(dfr2$value * 10)) / 10, 1)) + 
         theme(axis.text.y = element_text(size=15),
-              axis.text.x = element_text(size=15),
-              axis.title = element_blank(),
+              axis.text.x = element_text(size=15, angle = 90, hjust = 1),
+              axis.title.y = element_text(size=18),
+              axis.title.x = element_blank(),
               panel.background = element_blank(),
               panel.grid.major = element_line(colour = "gray"), 
               panel.grid.minor = element_blank(),
@@ -541,7 +559,7 @@ ggplot(data = dfr2, mapping = aes(x = r2_type, y = value)) +
                                           fill=NA, linewidth = 1))
 
 ggsave(sprintf("%smodelAlph%sR2.pdf", outDir, as.character(alph)),
-       height = 3, width = 4)
+       height = 5, width = 2)
 
 # Assessment in neurodegenerated individuals
 ################################################################################
@@ -787,6 +805,13 @@ ggsave(sprintf("%sctrls_highBraak_diagn_alpha%s_wLines.pdf", outDir, alph),
        height = 8,
        width = 9)
 
+ancova_mod_2 <- rstatix::anova_test(data = predAgeDF_tst_vs_nd_ancova,
+                                    formula = pred_age ~ age_death + group + age_death:group)
+
+print(ancova_mod_2)
+capture.output(ancova_mod_2,
+               file = sprintf("%sND_ancovaFitRstatix_alph%s.txt",
+                              outDir, as.character(alph)))
 
 # Obtain boxplots of predicted age in each braak stage in each decade, from
 # 60 to 100
