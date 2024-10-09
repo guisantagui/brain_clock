@@ -216,7 +216,9 @@ getModPredAgeVsBraak <- function(df,
                                  doPlot = T,
                                  savePlt = F,
                                  plotEq = T,
-                                 accountChronAge = F){
+                                 accountChronAge = F,
+                                 xPos = NULL,
+                                 yPos = NULL){
         #df <- dfBraak
         #age_int <- NULL
         if(!is.null(age_int)){
@@ -289,17 +291,19 @@ getModPredAgeVsBraak <- function(df,
                                width = 9)
                 }
                 if(plotEq){
-                        xRange <- layer_scales(plt)$x$range$range
-                        yRange <- layer_scales(plt)$y$range$range
-                        if(lMod$coefficients[2] > 0.3){
-                                xPos <- min(xRange) + abs(min(xRange) + 1.4)
-                                yPos <- max(yRange) - abs(max(yRange) * 0.01)
-                        }else if(lMod$coefficients[2] <= 0.3 & lMod$coefficients[2] > 0){
-                                xPos <- max(xRange) - abs(max(xRange) * .6)
-                                yPos <- min(yRange) + abs(min(yRange) * 0.05)
-                        }else{
-                                xPos <- max(xRange) - abs(max(xRange) * .6)
-                                yPos <- max(yRange) - abs(max(yRange) * 0.05)
+                        if(is.null(xPos) & is.null(yPos)){
+                                xRange <- layer_scales(plt)$x$range$range
+                                yRange <- layer_scales(plt)$y$range$range
+                                if(lMod$coefficients[2] > 0.3){
+                                        xPos <- min(xRange) + abs(min(xRange) + 1.4)
+                                        yPos <- max(yRange) - abs(max(yRange) * 0.01)
+                                }else if(lMod$coefficients[2] <= 0.3 & lMod$coefficients[2] > 0){
+                                        xPos <- max(xRange) - abs(max(xRange) * .6)
+                                        yPos <- min(yRange) + abs(min(yRange) * 0.05)
+                                }else{
+                                        xPos <- max(xRange) - abs(max(xRange) * .6)
+                                        yPos <- max(yRange) - abs(max(yRange) * 0.05)
+                                }
                         }
                         plt <- plt +
                                 geom_label(x = xPos,
@@ -561,6 +565,42 @@ ggplot(data = dfr2, mapping = aes(x = r2_type, y = value)) +
 ggsave(sprintf("%smodelAlph%sR2.pdf", outDir, as.character(alph)),
        height = 5, width = 2)
 
+dfmae_bxplt <- dfmae[dfmae$mae_type == "mae_cv", ]
+dfmae_bxplt$mae_type <- factor(dfmae_bxplt$mae_type, levels = c("mae_training",
+                                                                "mae_cv",
+                                                                "mae_test"))
+dfmae_point <- dfmae[dfmae$mae_type != "mae_cv", ]
+dfmae_point$mae_type <- factor(dfmae_point$mae_type, levels = c("mae_training",
+                                                                "mae_cv",
+                                                                "mae_test"))
+
+ggplot(data = dfmae, mapping = aes(x = mae_type, y = value)) +
+        geom_point(data = dfmae_point) + ylim(0, 1) +
+        geom_boxplot(data = dfmae_bxplt, outlier.shape = NA) +
+        geom_jitter(data = dfmae_bxplt) +
+        scale_x_discrete(limits = c("mae_training",
+                                    "mae_cv",
+                                    "mae_test"),
+                         labels = c("mae_training" = "train set",
+                                    "mae_cv" = "cross-validation",
+                                    "mae_test" = "test set")) +
+        ylab("MAE") +
+        ylim(c(floor(min(dfmae$value)), ceiling(max(dfmae$value)))) + 
+        theme(axis.text.y = element_text(size=15),
+              axis.text.x = element_text(size=15, angle = 90, hjust = 1),
+              axis.title.y = element_text(size=18),
+              axis.title.x = element_blank(),
+              panel.background = element_blank(),
+              panel.grid.major = element_line(colour = "gray"), 
+              panel.grid.minor = element_blank(),
+              axis.line = element_line(colour = "black"),
+              axis.line.y = element_line(colour = "black"),
+              panel.border = element_rect(colour = "black",
+                                          fill=NA, linewidth = 1))
+
+ggsave(sprintf("%smodelAlph%sMAE.pdf", outDir, as.character(alph)),
+       height = 5, width = 2)
+
 # Assessment in neurodegenerated individuals
 ################################################################################
 
@@ -788,7 +828,7 @@ capture.output(summary(ancova_mod),
 ggplot(predAgeDF_tst_vs_nd_ancova, aes(x = age_death, y = pred_age, color = group)) +
         geom_point() +
         geom_smooth(method = "lm", se = FALSE) +
-        labs(x = respVar, y = "pred_age") +
+        labs(x = "chronological age", y = "predicted age") +
         theme(axis.text.y = element_text(size=15),
               axis.text.x = element_text(size=15),
               axis.title = element_text(size=20),
@@ -948,18 +988,24 @@ ggarrange(plotlist = list(nd_lmPlt_60_70,
 
 ggsave(filename = sprintf("%sND_lmFit_alph%s_byAge.pdf",
                           outDir, as.character(alph)),
-       width = 13,
+       width = 12,
        height = 10)
 
 # Assess relationship between braak index and predicted age, accounting
 # for chronoligical age (pred age ~ braak + chron_age)
 
-getModPredAgeVsBraak(dfBraak,
-                     outName = sprintf("%sND_lmFit_alph%s_all_accChronAge.txt",
-                                       outDir, as.character(alph)),
-                     savePlt = T,
-                     plotEq = T,
-                     accountChronAge = T)
+nd_lmPlt_all_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
+                                                 outName = sprintf("%sND_lmFit_alph%s_all_accChronAge.txt",
+                                                                   outDir, as.character(alph)),
+                                                 savePlt = T,
+                                                 plotEq = T,
+                                                 accountChronAge = T)
+
+ggsave(sprintf("%sND_lmFit_alph%s_all_accChronAge.pdf",
+               outDir, as.character(alph)),
+       plot = nd_lmPlt_all_accCrhonAge,
+       height = 8,
+       width = 9)
 
 nd_lmPlt_60_70_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
                                                    age_int = "60_70",
@@ -998,7 +1044,7 @@ ggarrange(plotlist = list(nd_lmPlt_60_70_accCrhonAge,
 
 ggsave(filename = sprintf("%sND_lmFit_alph%s_byAge_accCrhonAge.pdf",
                           outDir, as.character(alph)),
-       width = 13,
+       width = 12,
        height = 10)
 
 h2o.shutdown(prompt = F)
