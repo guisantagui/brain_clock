@@ -22,9 +22,9 @@ conda activate r-4.3.1
 # Variables for the pipeline
 ########################################################################################################################
 
-inFile="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_excldLINCS/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_noCerebell.csv"
-svobj="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_excldLINCS/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_noCerebell_onlyAge_svobj.rds"
-outDir="/home/users/gsantamaria/projects/brain_clock/results/svaMod/allButLINCS/"
+inFile="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC_modFuncsAlpha1_coefs_noCerebell.csv"
+svobj="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC_modFuncsAlpha1_coefs_noCerebell_onlyAge_svobj.rds"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/svaMod/all_signChron/"
 
 Rscript sva_model_fit.R $inFile --svobj $svobj --outDir $outDir
 
