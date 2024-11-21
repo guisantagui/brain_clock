@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=NEAT_enr_signChrn
+#SBATCH --job-name=NEAT_enr_mDEGsAll
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
@@ -10,9 +10,9 @@
 #SBATCH -c 1
 #SBATCH --time=00-03:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/func_enrich/output_NEAT_enrich_signChrn.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/func_enrich/output_NEAT_enrich_mDEGsAll.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/func_enrich/error_NEAT_enrich_signChrn.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/func_enrich/error_NEAT_enrich_mDEGsAll.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p batch
 #SBATCH --qos=normal
@@ -25,13 +25,13 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-DE_file="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age_onSignGenes/modFuncsAlpha1_coefs.csv"
-outNameNEAT="mod_all_chronSign_neat.csv"
-extGeneSets=NULL
+DE_file="/home/users/gsantamaria/projects/brain_clock/results/mice_experiments/DEGs_all.csv"
+outNameNEAT="mice_DEGs_all_neat.csv"
+extGeneSets="/home/users/gsantamaria/projects/brain_clock/data/geneSets_tMuris.rds"
 FCVersion=5
 conv2ENSEMBL=false
-FCFile="~/projects/cureMILS/proteomics/data/FunCoup/FC5.0_H.sapiens_full"
-outDir="/home/users/gsantamaria/projects/brain_clock/results/enrich_NEAT/mod_all_signChron_431signChronGenes/"
+FCFile="/home/users/gsantamaria/projects/cureMILS/proteomics/data/FunCoup/FC5.0_M.musculus_full.gz"
+outDir="/home/users/gsantamaria/projects/brain_clock/results/enrich_NEAT/mice_exps/"
 
 # If the datasets and dataformat are not installed this script will install them
 bash install_ncbi_CLTools.sh
