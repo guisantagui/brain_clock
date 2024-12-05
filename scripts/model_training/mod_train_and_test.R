@@ -385,6 +385,10 @@ for(i in 1:(length(agesBins) - 1)){
         seed <- seed + i
 }
 
+testSet_metDat <- metDat[make.names(metDat$specimenID) %in% rownames(dat_ctrls) & !(make.names(metDat$specimenID) %in% make.names(inTrain)), ]
+
+write.csv(testSet_metDat, file = sprintf("%smetDat_testSet.csv", outDir))
+
 dat_ctrls_train <- dat_ctrls[make.names(inTrain), ]
 dat_ctrls_test <- dat_ctrls[!rownames(dat_ctrls) %in% make.names(inTrain), ]
 
