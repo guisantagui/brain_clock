@@ -198,12 +198,13 @@ neat_result <- neat(alist = neat_input,
                                           funCoup_filt$Gene2))))
 neat_result <- as.data.frame(neat_result)
 
-neat_result$GO_name <- sapply(neat_result$B, Term)
-neat_result$ontology <- mapIds(org.Hs.eg.db,
-                               neat_result$B,
-                               column = "ONTOLOGY",
-                               keytype = "GO")
-
+if (is.null(extGeneSets)){
+        neat_result$GO_name <- sapply(neat_result$B, Term)
+        neat_result$ontology <- mapIds(org.Hs.eg.db,
+                                       neat_result$B,
+                                       column = "ONTOLOGY",
+                                       keytype = "GO")
+}
 write.csv(neat_result, outName)
 print(sprintf("NEAT analysis done. %s saved at %s",
               basename(outName), dirname(outName)))
