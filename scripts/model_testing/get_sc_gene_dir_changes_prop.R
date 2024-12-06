@@ -50,6 +50,7 @@ coefs <- readCsvFast(coefsFile)
 # Keep only ageAnno rows and coefs columns.
 metDat <- metDat[metDat$substudy == "ageAnno", ]
 ageAnnoSamps <- make.names(metDat$specimenID)
+dat_all <- dat[rownames(dat) %in% ageAnnoSamps, ]
 dat <- dat[rownames(dat) %in% ageAnnoSamps, coefs$ensembl_gene_id]
 
 write.csv(dat, file = sprintf("%spseuBulkCounts_genesInMod.csv", outDir))
@@ -65,8 +66,11 @@ cell_types <- unique(metDat$tissue)
 
 sign_match_mat <- data.frame(matrix(nrow = 0, ncol = ncol(dat), dimnames = list(NULL, colnames(dat))))
 pVal_binom_vec <- c()
+n_perm <- 10000
+pVal_perm_vec <- c()
 for(i in seq_along(cell_types)){
         cell <- cell_types[i]
+        print(sprintf("Computing: %s...", cell))
         dat_young_cell <- dat_young[grepl(cell, rownames(dat_young)), ]
         dat_old_cell <- dat_old[grepl(cell, rownames(dat_old)), ]
         cell_sign_match <- c()
@@ -80,6 +84,31 @@ for(i in seq_along(cell_types)){
                 }
                 cell_sign_match <- c(cell_sign_match, gene_match)
         }
+        perm_match_prop_cell_vec <- c()
+        for (p in 1:n_perm){
+                dat_perm <- dat_all[, sample(colnames(dat_all), size = ncol(dat))]
+                colnames(dat_perm) <- colnames(dat)
+                dat_cell_perm_young <- dat_perm[young_samps, ]
+                dat_cell_perm_old <- dat_perm[old_samps, ]
+                dat_cell_perm_young <- dat_cell_perm_young[grepl(cell, rownames(dat_cell_perm_young)), ]
+                dat_cell_perm_old <- dat_cell_perm_old[grepl(cell, rownames(dat_cell_perm_old)), ]
+                cell_sign_match_perm <- c()
+                for(j in 1:ncol(dat_perm)){
+                        gene <- colnames(dat_perm)[j]
+                        gene_diff <- median(dat_cell_perm_old[, gene]) - median(dat_cell_perm_young[, gene])
+                        gene_coef <- coefs$coefficients[coefs$ensembl_gene_id == gene]
+                        gene_match <- 0
+                        if (gene_diff < 0 & gene_coef < 0 | gene_diff > 0 & gene_coef > 0 ){
+                                gene_match = 1
+                        }
+                        cell_sign_match_perm <- c(cell_sign_match_perm, gene_match)
+                }
+                perm_match_prop_cell <- sum(cell_sign_match_perm)/length(cell_sign_match_perm)
+                perm_match_prop_cell_vec <- c(perm_match_prop_cell_vec,
+                                              perm_match_prop_cell)
+        }
+        real_cell_sign_match_prop <- sum(cell_sign_match)/length(cell_sign_match)
+        pVal_perm <- sum(perm_match_prop_cell_vec >= real_cell_sign_match_prop)/n_perm
         cell_sign_match <- data.frame(matrix(cell_sign_match,
                                              nrow = 1,
                                              ncol = ncol(dat),
@@ -90,6 +119,7 @@ for(i in seq_along(cell_types)){
                                  alternative = "greater")$p.value
         sign_match_mat <- rbind.data.frame(sign_match_mat, cell_sign_match)
         pVal_binom_vec <- c(pVal_binom_vec, pVal_binom)
+        pVal_perm_vec <- c(pVal_perm_vec, pVal_perm)
 }
 
 sign_match_mat$prop_same_dir <- apply(sign_match_mat,
@@ -97,6 +127,7 @@ sign_match_mat$prop_same_dir <- apply(sign_match_mat,
                                       function(x) sum(x)/length(x))
 
 sign_match_mat$pVal_binom <- pVal_binom_vec
+sign_match_mat$pVal_perm <- pVal_perm_vec
 
 write.csv(sign_match_mat, file = paste0(outDir, "same_dir_sign_genes_prop.csv"))
 
