@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=NEAT_yoo
+#SBATCH --job-name=NEAT_yooMAges
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
@@ -10,9 +10,9 @@
 #SBATCH -c 1
 #SBATCH --time=02-00:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/func_enrich/output_NEAT_yoo.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/func_enrich/output_NEAT_yooMAges.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/func_enrich/error_NEAT_yoo.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/func_enrich/error_NEAT_yooMAges.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p batch
 #SBATCH --qos=normal
@@ -25,8 +25,8 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-DE_file="/home/users/gsantamaria/projects/brain_clock/results/yoo_science_results/LOAD_vs_HC_predSign.csv"
-outNameNEAT="LOAD_vs_HC_modSignGenes.csv"
+DE_file="/home/users/gsantamaria/projects/brain_clock/results/yoo_science_results/LOAD_vs_HC_matchAges_predSign.csv"
+outNameNEAT="LOAD_vs_HC_matchAges_modSignGenes.csv"
 extGeneSets=NULL
 FCVersion=5
 conv2ENSEMBL=false
