@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=100GB
 #SBATCH -c 8
-#SBATCH --time=00-00:40:00
+#SBATCH --time=00-12:00:00
 #Define sdout path
 #SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/model_testing/output_scGeneDirChngs.txt
 #Define sderr path
