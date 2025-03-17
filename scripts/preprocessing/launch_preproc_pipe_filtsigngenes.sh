@@ -29,17 +29,15 @@ conda activate r-4.3.1
 # Variables for the pipeline
 ########################################################################################################################
 
-input="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
-metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
-filtDF="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age/modFuncsAlpha1_coefs.csv" # "none" for not filtering
-#propZerosRem=0.8
+input="../../data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
+metDat="../../data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
+filtDF="../../results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age/modFuncsAlpha1_coefs.csv" # "none" for not filtering
 nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
 excludeSubstudy="none" # "none" for not excluding any substudy before the preprocessing
 nSV_method="leek"
-#rinFilt=6
-outDir="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/"
+outDir="../../results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then
@@ -58,21 +56,12 @@ else
     filtInput="$input"
 fi
 
-# Preprocess the TPMs file
-#Rscript tpms_preproc.R $input --metDat $metDat --propZerosRem $propZerosRem --rinFilt $rinFilt --outDir $outDir
-
-#logSuff="_preproc_log10.csv"
-
-#inPCALog=$(basename "$input")
-#inPCALog=$(echo "$inPCALog" | sed 's/.csv$//')
-#inPCALog="${outDir}${inPCALog}${logSuff}"
-
-# Do PCA of preprocessed file and plot it.
-#Rscript bigPCA_exe.R $filtInput --nPCs $nPCs --stand --outDir $outDir
-#pcaFile=$(echo "$filtInput" | sed 's/.csv$//')
-#pcaFile=$(basename $pcaFile)
-#pcaFile="${outDir}${pcaFile}_pca.rds"
-#Rscript plotBigPCA_exe.R $pcaFile --metDat $metDat --x PC1 --y PC2 --outDir $outDir
+# Do PCA of data.csv file and plot it.
+Rscript bigPCA_exe.R $filtInput --nPCs $nPCs --stand --outDir $outDir
+pcaFile=$(echo "$filtInput" | sed 's/.csv$//')
+pcaFile=$(basename $pcaFile)
+pcaFile="${outDir}${pcaFile}_pca.rds"
+Rscript plotBigPCA_exe.R $pcaFile --metDat $metDat --x PC1 --y PC2 --outDir $outDir
 
 # Remove cerebellum samples and run PCA again
 Rscript tpms_tissOutFilt.R $filtInput --metDat $metDat --tiss2rem "$tiss2rem" --outTag $outTag --outDir $outDir
@@ -106,66 +95,27 @@ batch="${batch}_batches.rds"
 modCombat=$(echo "$noCerebFile" | sed 's/.csv$//')
 modCombat="${modCombat}_combatMod.rds"
 
-Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir &
-#Rscript sva_exe.R $noCerebFile --mod $mod_all --mod0 $mod0_all --saveSVrem --outDir $outDir &
-#Rscript combat_exe.R $noCerebFile --batch $batch --combatMod $modCombat --outDir $outDir &
-wait
+Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir
 
 svaAdj_onlyAge=$(echo "$noCerebFile" | sed 's/.csv$//')
 svaAdj_onlyAge="${svaAdj_onlyAge}_onlyAge_svaAdj.csv"
 
-#svaAdj_all=$(echo "$noCerebFile" | sed 's/.csv$//')
-#svaAdj_all="${svaAdj_all}_all_svaAdj.csv"
-
-#combatAdj=$(echo "$noCerebFile" | sed 's/.csv$//')
-#combatAdj="${combatAdj}_combat.csv"
-
 # Run PCAs of the results
-Rscript bigPCA_exe.R $svaAdj_onlyAge --nPCs $nPCs --stand --outDir $outDir &
-#PID_sva_onlyAge=$!
+Rscript bigPCA_exe.R $svaAdj_onlyAge --nPCs $nPCs --stand --outDir $outDir
 
-#Rscript bigPCA_exe.R $svaAdj_all --nPCs $nPCs --stand --outDir $outDir &
-#PID_sva_all=$!
-
-#Rscript bigPCA_exe.R $combatAdj --nPCs $nPCs --stand --outDir $outDir &
-#PID_combat=$!
-wait
-
-# Run SVA of the three batch effect removal approaches
-# and plot surrogate variables to see if batch effect is 
-# still present (without saving df with regressed-out SVs)
-Rscript sva_fast_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --outDir $outDir &
-#Rscript sva_exe.R $svaAdj_all --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
-#Rscript sva_exe.R $combatAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --outDir $outDir &
-wait
+# Run SVA on the SVA-removed dataset and plot surrogate
+# variables to see if batch effect is still present (without saving df
+# with regressed-out SVs)
+Rscript sva_fast_exe.R $svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --outDir $outDir
 
 sva_after_sva_onlyAge=$(echo "$svaAdj_onlyAge" | sed 's/.csv$//')
 sva_after_sva_onlyAge="${sva_after_sva_onlyAge}_onlyAge_svobj.rds"
 Rscript sva_plot.R $svaAdj_onlyAge --sva $sva_after_sva_onlyAge --metDat $metDat --outDir $outDir
 
-#sva_after_sva_all=$(echo "$svaAdj_all" | sed 's/.csv$//')
-#sva_after_sva_all="${sva_after_sva_all}_onlyAge_svobj.rds"
-#Rscript sva_plot.R $svaAdj_all --sva $sva_after_sva_all --metDat $metDat --outDir $outDir
-
-#sva_after_combat=$(echo "$combatAdj" | sed 's/.csv$//')
-#sva_after_combat="${sva_after_combat}_onlyAge_svobj.rds"
-#Rscript sva_plot.R $combatAdj --sva $sva_after_combat --metDat $metDat --outDir $outDir
-
 # Plot PCAs
 pcaSVAOnlyAge=$(echo "$svaAdj_onlyAge" | sed 's/.csv$//')
 pcaSVAOnlyAge="${pcaSVAOnlyAge}_pca.rds"
 
-#pcaSVAAll=$(echo "$svaAdj_all" | sed 's/.csv$//')
-#pcaSVAAll="${pcaSVAAll}_pca.rds"
-
-#pcaCombat=$(echo "$combatAdj" | sed 's/.csv$//')
-#pcaCombat="${pcaCombat}_pca.rds"
-
-#(wait $PID_sva_onlyAge && Rscript plotBigPCA_exe.R $pcaSVAOnlyAge --metDat $metDat --x PC1 --y PC2 --outDir $outDir)
-#(wait $PID_sva_all && Rscript plotBigPCA_exe.R $pcaSVAAll --metDat $metDat --x PC1 --y PC2 --outDir $outDir)
-#(wait $PID_combat && Rscript plotBigPCA_exe.R $pcaCombat --metDat $metDat --x PC1 --y PC2 --outDir $outDir)
 Rscript plotBigPCA_exe.R $pcaSVAOnlyAge --metDat $metDat --x PC1 --y PC2 --outDir $outDir
-#Rscript plotBigPCA_exe.R $pcaSVAAll --metDat $metDat --x PC1 --y PC2 --outDir $outDir
-#Rscript plotBigPCA_exe.R $pcaCombat --metDat $metDat --x PC1 --y PC2 --outDir $outDir
 
 conda deactivate
