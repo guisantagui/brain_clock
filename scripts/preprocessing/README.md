@@ -37,6 +37,6 @@ As indicated in the **Methods**, our model was trained in two different steps:
 ### Outcomes of the two-step training process
 - The final model is 35% smaller, with a only a slight decline in predictive performance.
 - The 664 genes obtained from the first step were used to derive surrogate variables, enabling the training of a frozen SVA model. This model corrects inferred surrogate variables based on the expression of these 664 genes, and is implemented in our package [`brainAgeShiftR`](https://gitlab.lcsb.uni.lu/CBG/brainAgeShiftR) via the function:
-r```
+```r
 do_frozenSVA()
 ```
