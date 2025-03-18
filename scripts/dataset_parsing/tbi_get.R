@@ -1,17 +1,33 @@
+################################################################################
+# Brain clock: Download TBI data and save it as a CSV file.                    #
+################################################################################
+
+if (!require("BiocManager", quietly = T)){
+        install.packages("BiocManager")
+}
+if (!require("biomaRt", quietly = T)){
+        BiocManager::install("biomaRt", update = F)
+}
+if (!require("org.Hs.eg.db", quietly = T)){
+        BiocManager::install("org.Hs.eg.db", update = F)
+}
 library(biomaRt)
 library(org.Hs.eg.db)
 
 
-if(!require("mygene", quietly = T)) BiocManager::install("mygene", update = F)
-library(mygene)
-if(!require("rentrez", quietly = T)) install.packages("rentrez")
-library(mygene)
+#if(!require("mygene", quietly = T)) BiocManager::install("mygene", update = F)
+#library(mygene)
+#if(!require("rentrez", quietly = T)) install.packages("rentrez")
+#library(mygene)
 
-
+# Directory stuff
+################################################################################
 baseURL <- "https://aging.brain-map.org"
 
-tbiURLFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/tbi_data_files.csv"
-outDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/tbi_raw/"
+setwd("/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock_paper_repo/brain_clock/scripts/dataset_parsing/")
+tbiURLFile <- "../../data/dataset_parsing/tbi_data_files.csv"
+#outDir <- "../../results/dataset_parsi/tbi_raw/"
+outDir <- sprintf("%s/tbi_raw/", dirname(tbiURLFile))
 parsedDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/"
 metDatFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/combined_metDat.csv"
 
@@ -26,6 +42,8 @@ if(!dir.exists(outDir)){
 }
 
 
+# Functions
+################################################################################
 
 # This function accepts a vector of ensembl IDs and returns info about 
 # the updated version, symbols, start pos, end pos and size
@@ -179,7 +197,10 @@ fetch_ensembl_id <- function(entrez_id) {
 
 #notMappedInfo <- getGenes(notMapped, fields = "all")
 
-metDat <- read.csv(metDatFile)
+
+# Parse metadata
+################################################################################
+#metDat <- read.csv(metDatFile)
 
 tbiURLs <- read.csv(tbiURLFile)
 # Check duplicates in specimen name
@@ -189,8 +210,9 @@ tbiURLs$specimen_name[tbiURLs$specimen_name %in% dupSpecs]
 tbiURLs$structure_acronym[tbiURLs$specimen_name %in% dupSpecs]
 
 # All the specimen_name duplicates have PCx, while in structure acronym they 
-# don't have it. It seems an error, so let's correct the strucure acronym 
-# in the specimen_name
+# don't have it: half of them are PCx (parietal neocortex) and half FWM (white
+# matter of the forebrain). It seems looks like an error, so let's correct the
+# strucure acronym in the specimen_name
 tbiURLs$specimen_name <- sapply(1:nrow(tbiURLs),
                                 function(x) gsub(strsplit(tbiURLs$specimen_name[x],
                                                           split = ".",
@@ -198,7 +220,8 @@ tbiURLs$specimen_name <- sapply(1:nrow(tbiURLs),
                                                  tbiURLs$structure_acronym[x],
                                                  tbiURLs$specimen_name[x]))
 
-
+# Download the files
+################################################################################
 tabList <- list()
 #countMat <- data.frame()
 for(i in 1:nrow(tbiURLs)){
@@ -226,14 +249,16 @@ for(i in 1:nrow(tbiURLs)){
         tabList[[specimen]] <- tab
 }
 
-names(tabList)
+# Generate the counts matrix
+################################################################################
 
+# Keep the matrices that were downloaded successfully
+tabList <- tabList[!unlist(lapply(tabList, function(x) all(is.na(x))))]
 
-
-
-
-
+# Obtain unique genes from all the files 
 uniqueGenes <- unique(unlist(lapply(tabList, function(x) x$gene_id)))
+
+# Create the counts matrix
 countMat <- matrix(nrow = length(tabList),
                    ncol = length(uniqueGenes),
                    dimnames = list(names(tabList),
@@ -260,13 +285,15 @@ countMat <- countMat[rownames(countMat) != sampsWNAs, ]
 # Get the gene info for the colnames of countMat
 
 # Obtain gene info dataframe with bioMart
-human <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
+human <- useMart("ensembl", dataset="hsapiens_gene_ensembl",
+                 host = "https://www.ensembl.org")
 geneInfo <- getENSEMBL_ID_info(gsub("X", "", colnames(countMat)),
                                mart = human,
                                removeNAs = T,
                                filt = "entrezgene_id")
 
 notMapped <- gsub("X", "", colnames(countMat))[!gsub("X", "", colnames(countMat)) %in% geneInfo$entrezgene_id]
+
 
 # Convert colnames of countMat to ensembl IDs
 ensemblColnames <- geneInfo$ensembl_gene_id[match(colnames(countMat),
