@@ -1,16 +1,42 @@
 # 2. Preprocessing
-This directory contains the scripts used for preprocessing the RNA-seq data that was used for the training and testing of the brain clock. The input files consist in `data.csv`, a quantile-normalized log transformed counts (`quant_norm(log2(counts + 1))`) CSV matrix (genes in columns, samples in rows), and `metadata.csv`, a metadata CSV file. `data.csv` consists of samples from the rnaseqreprocessing, LBP, TBI and GTEx studies, pseudobulk data of brain samples from ageAnno, and brain cell types controls and perturbation data from LINCS1000, as well as several perturbation datasets collected from several sources (indicated in the Table S5). This matrix was generated in the module 1 (Dataset parsing), which already hade some preprocessing needed for merging the datasets. The steps carried out in this module are:
-1. Plot PCA to evaluate batch effects and if there are sub-tissues of the brain with significant differences to others.
-2. Removal of samples originating from the cerebellum, as we noticed that they have very different transcriptional profiles.
-3. Plot PCA without the cerebellum samples.
-4. Remove batch effects using surrogate variable analysis (SVA), via regressing out the surrogate variables.
-5. Plot PCA after the SVA to see if batch structure is removed from the data.
-6. Compute surrogate variables (with SVA again) on the SVA-adjusted dataset and plot the surrogate variables to ensure batch structure has been removed.
-`launch_preproc_pipe.sh` coordinates the outlined preprocessing steps. The pipeline can be launched in a Slurm-based HPC system by running:
+This directory contains the scripts used to preprocess the RNA-seq data that was used for training and testing the brain clock model.
+## Input files
+The preprocessing pipeline requires the following input files:
+- `data.csv`: a quantile-normalized, log-transformed count matrix (`quant_norm(log2(counts + 1))`), where genes are in columns and samples are in rows.
+- `metadata.csv`: a metadata file containing sample-related information.
+The `data.csv` dataset includes samples from multiple sources: 
+- [**The RNAseq Harmonization Study (rnaSeqReprocessing)**](https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn9702085)
+- [**The Living Brain Project (LBP)**](https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn26337520)
+- [**The Aging, Dementia and Traumatic Brain Injury Study(TBI)**](https://aging.brain-map.org)
+- [**The Genotype-Tissue Expression (GTEx) project (GTEx)**](https://www.gtexportal.org/home/downloads/adultgtex/bulk_tissue_expression)
+- Pseudobulk data of brain samples from [**ageAnno**](https://relab.xidian.edu.cn/AgeAnno/#/)
+- Brain cell types controls and perturbation data from Level 3 of [**LINCS L1000**](https://maayanlab.cloud/sigcom-lincs/#/Download)
+- A compilation of perturbation datasets collected from several sources (indicated in the Table S5)
+This matrix was generated in the **module 1 (Dataset parsing)**, which handled some preprocessing required for datasets integration.
+## Preprocessing steps
+The following steps are performed in this module:
+1. **Principal component analysis (PCA):** assess batch effects and identify potential sub-tissue differences in brain samples.
+2. **Cerebellum sample removal:** Exclude cerebellum samples due to their distinct transcriptional profiles.
+3. **PCA re-evaluation:** re-run PCA after cerebellum sample removal.
+4. **Batch effect correction:** Apply **surrogate variable analysis (SVA)** to remove batch effects by regressing out the surrogate variables.
+5. **Post-SVA PCA:** perform PCA again to confiorm batch structure removal.
+6. **Final surrogate variable computation:** compute surrogate variables on the SVA-adjusted dataset and visualize them to ensure batch effects are eliminated.
+The preprocessing steps are coordinated by `launch_preproc_pipe.sh`, which can be executed on a Slurm-based HPC system using:
 
 ```bash
 sbatch launch_preproc_pipe.csv
 ```
-As indicated in the methods, our model was fit in two different steps. In the first step, we identified 664 genes with non-zero coefficients. `launch_preproc_pipe_filtsigngenes.csv` performs the same preprocessing steps than `launch_preproc_pipe.csv`, but with a prior filtering step to keep only the 664 genes selected by the first fitting. The dataset resulting from `launch_preproc_pipe.csv` is the one that was used used to perform the second training round, which selected 431 genes among the 664 initially provided. By this two-step process two things are accomplished:
-- We obtain a model 35% smaller, with a really slight decline in predictive performance.
-- We obtain a set of surrogate variables from the 664 genes obtained from the first fitting, which allowed us to train a frozen SVA model to correct for inferred surrogate variables based on the expression of these 664 genes, which is implemented in our package `brainAgeShiftR` and can be applied with the function `do_frozenSVA()`.
+## Note on two-step training
+As indicated in the **Methods**, our model was trained in two different steps:
+1. **First step:**
+    - Train model on file generated by `launch_preproc_pipe_filtsigngenes.csv`.
+    - Identified 664 genes with non-zero coefficients
+2. **Second step:**
+    - Repeat pre-processing of `data.csv` with `launch_preproc_pipe_filtsigngenes.sh`, which performs the same steps than `launch_preproc_pipe.csv`, but with a prior filtering step to keep only the 664 genes selected by the first fitting (indicated in the file `modFuncsAlpha1_coefs.csv`). 
+    - Perform second training round on the dataset generated by `launch_preproc_pipe_filtsigngenes.sh`, which selected 431 genes among the 664 initially provided.
+### Outcomes of the two-step training process
+- The final model is 35% smaller, with a only a slight decline in predictive performance.
+- The 664 genes obtained from the first step were used to derive surrogate variables, enabling the training of a frozen SVA model. This model corrects inferred surrogate variables based on the expression of these 664 genes, and is implemented in our package [`brainAgeShiftR`](https://gitlab.lcsb.uni.lu/CBG/brainAgeShiftR) via the function:
+r```
+do_frozenSVA()
+```
