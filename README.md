@@ -28,7 +28,7 @@ cd ../..
 ```
 Results will be saved in `results/preprocessing/first_round/`. This pipeline generates several PCA plots of the steps outlined in [`scripts/preprocessing`](scripts/preprocessing), some intermediate `rds` files used for batch removal, and the `data_noCerebell_onlyAge_svaAdj.csv` file that will be used for the first round of training. 
 ### 2.2 Model training
-Train the model on the `data_noCerebell_onlyAge_svaAdj.csv`. Tests the model on samples suffering from neurodegeneration, and computes significance tests on the differences of predicted ages between healthy individuals and neurodegeneration-affected individuals. For doing so, run the following commands:
+Train the model on the `data_noCerebell_onlyAge_svaAdj.csv` stored into `results/preprocessing/first_round/`. Tests the model on samples suffering from neurodegeneration, and computes significance tests on the differences of predicted ages between healthy individuals and neurodegeneration-affected individuals. For doing so, run the following commands:
 ```bash
 cd scripts/model_training
 sbatch fitModel_first_round.sh
@@ -43,9 +43,12 @@ cd scripts/preprocessing
 sbatch launch_preproc_pipe_filtsigngenes.sh
 cd ../..
 ```
+Analogously to 2.1 section, preprocessed data for the second round of training will be saved into `results/preprocessing/second_round/`.
 ### 3.2 Model training
+Train the model on the `data_noCerebell_onlyAge_svaAdj.csv` stored into `results/preprocessing/second_round/`.
 ```bash
 cd scripts/model_training
 sbatch fitModel_second_round.sh
 cd ../..
 ```
+Resulting results of model training will be saved in `results/models/second_round_model/`.
