@@ -51,9 +51,19 @@ cd scripts/model_training
 sbatch fitModel_second_round.sh
 cd ../..
 ```
-Resulting results of model training will be saved in `results/models/second_round_model/`.
+Results of model training will be saved in `results/models/second_round_model/`.
 ## 4. Model testing
 Here we will use the final model to compute the transcriptional ages of:
 - The perturbation data.
 - The single cell pseudobulk data.
 These samples are included in `results/preprocessing/second_round/data_noCerebell_onlyAge_svaAdj.csv`. After computing the transcriptional ages, this pipeline computes significance tests for differences in transcriptional ages either between control and perturbed samples, and between young and old samples.
+To run the model testing run:
+```bash
+cd scripts/model_testing
+# Perturbation analysis
+sbatch launch_model_test_perts.sh
+# Single cell pseudo-bulk analysis
+sbatch launch_model_test_sCell.sh
+cd ../..
+```
+Results will be saved in `results/model_testing/`.
