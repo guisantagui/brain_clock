@@ -24,20 +24,40 @@ conda activate r-4.3.1
 datFile="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC_modFuncsAlpha1_coefs_noCerebell_onlyAge_svaAdj.csv"
 modFile="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age_onSignGenes/modFuncsAlpha1/GLM_model_R_1727080896797_1"
 metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
+modCoefsFile="../../results/models/second_round_model/modFuncsAlpha1_coefs.csv"
 respVar="age_chron"
 ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
 batchSize=8000
 whatSampsTest="single_cell"
 mem="50G"
+youngThrshld=30
+oldThrshld=70
 outDir="/home/users/gsantamaria/projects/brain_clock/results/model_test_sCell/modAllGenes_integWAllLincs_and_sc_oAge_chronAge_alph1_onSignGenes/"
 
 # Run the simulations
 ########################################################################################################################
 
-Rscript model_test.R $datFile --modFile $modFile --metDat $metDat --respVar $respVar --ageTransPars $ageTransPars --sizeBatch $batchSize --whatSampsTest $whatSampsTest --mem $mem --outDir $outDir
+Rscript model_test.R $datFile \
+        --modFile $modFile \
+        --metDat $metDat \
+        --respVar $respVar \
+        --ageTransPars $ageTransPars \
+        --sizeBatch $batchSize \
+        --whatSampsTest $whatSampsTest \
+        --mem $mem \
+        --outDir $outDir
 
 sCell_stats_in="${outDir}pred_ages.csv"
 
-Rscript model_sCell_stats.R $sCell_stats_in --respVar $respVar --metDat $metDat --excludeYoung
+Rscript model_sCell_stats.R $sCell_stats_in \
+        --respVar $respVar \
+        --metDat $metDat \
+        --excludeYoung
+
+Rscript get_sc_gene_dir_changes_prop.R $datFile \
+        --metDat $metDat \
+        --modCoefs $modCoefsFile \
+        --youngThrshld $youngThrshld \
+        --oldThrshld $oldThrshld
 
 conda deactivate

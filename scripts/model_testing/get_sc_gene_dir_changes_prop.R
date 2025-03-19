@@ -29,15 +29,43 @@ readCsvFast <- function(f){
         return(df)
 }
 
+# Terminal argument parser
+################################################################################
+parser <- arg_parser("Do statistic analysis of the proportion of age predictor genes from the model that follow the same direction of change in the single cell data.")
+
+parser <- add_argument(parser = parser,
+                       arg = c("input",
+                               "--metDat",
+                               "--modCoefs",
+                               "--youngThrshld",
+                               "--oldThrshld",
+                               "--outDir"),
+                       help = c("Pre-processed gene expression matrix.",
+                                "Metadata file.",
+                                "Model coefficient file.",
+                                "Age threshold for young samples.",
+                                "Age threshold for old samples.",
+                                "Output directory."),
+                       flag = c(F, F, F, F, F, F))
+
+parsed <- parse_args(parser)
+
 # Directory stuff
 ################################################################################
-datFile <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
-datFile <- "/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC_modFuncsAlpha1_coefs_noCerebell_onlyAge_svaAdj.csv"
-metDatFile <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
-coefsFile <- "/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age_onSignGenes/modFuncsAlpha1_coefs.csv"
-outDir <- "/home/users/gsantamaria/projects/brain_clock/results/model_test_sCell/modAllGenes_integWAllLincs_and_sc_oAge_chronAge_alph1_onSignGenes"
-youngThrshld <- 30
-oldThrshld <- 70
+#datFile <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
+#datFile <- "/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC_modFuncsAlpha1_coefs_noCerebell_onlyAge_svaAdj.csv"
+#metDatFile <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
+#coefsFile <- "/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age_onSignGenes/modFuncsAlpha1_coefs.csv"
+#outDir <- "/home/users/gsantamaria/projects/brain_clock/results/model_test_sCell/modAllGenes_integWAllLincs_and_sc_oAge_chronAge_alph1_onSignGenes"
+#youngThrshld <- 30
+#ldThrshld <- 70
+
+datFile <- parsed$input
+metDatFile <- parsed$metDat
+coefsFile <- parsed$modCoefs
+youngThrshld <- as.numeric(parsed$youngThrshld)
+oldThrshld <- as.numeric(parsed$oldThrshld)
+outDir <- parsed$outDir
 
 outDir <- addSlashIfNot(outDir)
 createIfNot(outDir)
