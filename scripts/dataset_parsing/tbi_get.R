@@ -280,7 +280,7 @@ countMat[sampsWNAs, featsWNAs]
 
 # H14.09.022.TCx.01_TCx has missing values in 22769, so let's just remove this
 # sample
-countMat <- countMat[rownames(countMat) != sampsWNAs, ]
+countMat <- countMat[!rownames(countMat) %in% sampsWNAs, ]
 
 # Get the gene info for the colnames of countMat
 
@@ -292,7 +292,11 @@ geneInfo <- getENSEMBL_ID_info(gsub("X", "", colnames(countMat)),
                                removeNAs = T,
                                filt = "entrezgene_id")
 
-notMapped <- gsub("X", "", colnames(countMat))[!gsub("X", "", colnames(countMat)) %in% geneInfo$entrezgene_id]
+notMapped <- gsub("X",
+                  "",
+                  colnames(countMat))[!gsub("X",
+                                            "",
+                                            colnames(countMat)) %in% geneInfo$entrezgene_id]
 
 
 # Convert colnames of countMat to ensembl IDs
