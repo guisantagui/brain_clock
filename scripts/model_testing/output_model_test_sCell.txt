@@ -1,0 +1,31 @@
+
+H2O is not running yet, starting it now...
+
+Note:  In case of errors look at the following log files:
+    /tmp/Rtmp3Vf0al/file310e9d73c624b9/h2o_gsantamaria_started_from_r.out
+    /tmp/Rtmp3Vf0al/file310e9d1bf9bf89/h2o_gsantamaria_started_from_r.err
+
+
+Starting H2O JVM and connecting: ... Connection successful!
+
+R is connected to the H2O cluster: 
+    H2O cluster uptime:         2 seconds 39 milliseconds 
+    H2O cluster timezone:       Europe/Luxembourg 
+    H2O data parsing timezone:  UTC 
+    H2O cluster version:        3.46.0.2 
+    H2O cluster version age:    3 months and 21 days 
+    H2O cluster name:           H2O_started_from_R_gsantamaria_eqw096 
+    H2O cluster total nodes:    1 
+    H2O cluster total memory:   44.44 GB 
+    H2O cluster total cores:    25 
+    H2O cluster allowed cores:  25 
+    H2O cluster healthy:        TRUE 
+    H2O Connection ip:          localhost 
+    H2O Connection port:        54321 
+    H2O Connection proxy:       NA 
+    H2O Internal Security:      FALSE 
+    R Version:                  R version 4.3.1 (2023-06-16) 
+
+  |                                                                              |                                                                      |   0%  |                                                                              |======================================================================| 100%
+  |                                                                              |                                                                      |   0%  |                                                                              |======================================================================| 100%
+[1] "pred_ages.csv saved in /home/users/gsantamaria/projects/brain_clock/results/model_test_sCell/modAllGenes_integWLincs_and_sc_oAge_chronAge_alph1_onNotSVAedData."

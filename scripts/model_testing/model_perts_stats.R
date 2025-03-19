@@ -58,6 +58,95 @@ writeCsvFst <- function(df, file, rowNames = T, colNames = T){
         data.table::fwrite(df, file, col.names = colNames)
 }
 
+# Plot the fold changes of each perturbation, with colors indicating
+# significance and indicating the names of the top N perturbations
+plotPerts <- function(pertDF, what_stats, cell_type, alph = 0.05,
+                      thrshld_labs_low = NULL,
+                      thrshld_labs_high = NULL,
+                      topN = NULL,
+                      comp_vec = NULL,
+                      point_size = 0.1,
+                      rem_dose = F){
+        
+        pertDF <- pertDF[pertDF$cell_type == cell_type, ]
+        pertDF <- pertDF[order(pertDF$chron_age_logFC), ]
+        pertDF$perturbation <- factor(pertDF$perturbation,
+                                      levels = pertDF$perturbation)
+        pertDF$sign <- rep(NA, nrow(pertDF))
+        pertDF$labs <- rep(NA, nrow(pertDF))
+        if(what_stats == "t_test"){
+                pertDF$sign[pertDF$chron_age_tTest_pValAdj <= alph] <- "significant"
+        }else if (what_stats == "wilcox"){
+                pertDF$sign[pertDF$chron_age_wilcox_pValAdj <= alph] <- "significant"
+        }
+        pertDF$sign[is.na(pertDF$sign)] <- "not significant"
+        if (!is.null(thrshld_labs_low) &!is.null(thrshld_labs_high)){
+                boolLab <- pertDF$sign == "significant" & (pertDF$chron_age_logFC < thrshld_labs_low | pertDF$chron_age_logFC > thrshld_labs_high)
+        }
+        if(!is.null(topN) & is.null(comp_vec)){
+                pertDF_sign <- pertDF[pertDF$sign == "significant", ]
+                topN_sign_idxs <-  setNames(order(abs(pertDF_sign$chron_age_logFC),
+                                                  decreasing = T)[1:topN],
+                                            pertDF_sign$perturbation[order(abs(pertDF_sign$chron_age_logFC),
+                                                                           decreasing = T)[1:topN]])
+                boolLab <- rep(F, nrow(pertDF))
+                boolLab[pertDF$perturbation %in% names(topN_sign_idxs)] <- T
+        }else if (!is.null(comp_vec) & is.null(topN)){c
+                pertDF_sign <- pertDF[pertDF$sign == "significant" & pertDF$chron_age_logFC < 0, ]
+                pert_names_val <- pertDF_sign$perturbation[grepl(paste(tolower(comp_vec),
+                                                                       collapse = "|"),
+                                                                 tolower(pertDF_sign$perturbation))] 
+                boolLab <- rep(F, nrow(pertDF))
+                boolLab[pertDF$perturbation %in% pert_names_val] <- T
+        }else if (!is.null(comp_vec) & !is.null(topN)){
+                pertDF_sign <- pertDF[pertDF$sign == "significant" & pertDF$chron_age_logFC < 0, ]
+                topN_sign_idxs <-  setNames(order(abs(pertDF_sign$chron_age_logFC),
+                                                  decreasing = T),
+                                            pertDF_sign$perturbation[order(abs(pertDF_sign$chron_age_logFC),
+                                                                           decreasing = T)])
+                pert_names_val <- topN_sign_idxs[grepl(paste(tolower(comp_vec),
+                                                             collapse = "|"),
+                                                       tolower(names(topN_sign_idxs)))]
+                pert_names_val <- pert_names_val[1:topN]
+                boolLab <- rep(F, nrow(pertDF))
+                boolLab[pertDF$perturbation %in% names(pert_names_val)] <- T
+        }
+        pertDF$labs[boolLab] <- as.character(pertDF$perturbation[boolLab])
+        pertDF$labs <- gsub(sprintf("_%s", cell_type), "", pertDF$labs)
+        if (rem_dose){
+                pertDF$labs <- gsub("\\_.*", "", pertDF$labs)
+        }
+        pertDF$labs <- gsub("_", " ", pertDF$labs)
+        pertDF <- pertDF %>% arrange(sign)
+        plt <- ggplot(pertDF,
+                      mapping = aes(x = perturbation,
+                                    y = chron_age_logFC,
+                                    col = sign,
+                                    label = labs)) +
+                geom_hline(yintercept = 0) +
+                geom_point(size = point_size) +
+                scale_color_manual(values = c("red", "darkgreen")) +
+                geom_text_repel(max.overlaps = 100) +
+                labs(x = "perturbations", y = "predicted age log2 fold change") +
+                scale_x_discrete(expand = expansion(mult = c(0.01, 0.01))) +
+                theme(title = element_text(size = 20),
+                      axis.text.y = element_text(size=15),
+                      axis.text.x = element_blank(),
+                      axis.title = element_text(size=20),
+                      axis.ticks.x = element_blank(),
+                      panel.background = element_blank(),
+                      panel.grid.major = element_blank(), 
+                      panel.grid.minor = element_blank(),
+                      legend.text = element_text(size=12),
+                      legend.title = element_blank(),
+                      axis.line = element_line(colour = "black"),
+                      axis.line.y = element_line(colour = "black"),
+                      panel.border = element_rect(colour = "black",
+                                                  fill=NA,
+                                                  linewidth = 1))
+        return(plt)
+}
+
 # Load the data
 ################################################################################
 
@@ -204,3 +293,12 @@ if(respVar == "age_trans"){
 writeCsvFst(pert_stats_DF, file = outName)
 
 print(sprintf("%s saved at %s", basename(outName), dirname(outName)))
+
+# Plot transcriptional age log2FC per perturbation
+################################################################################
+npc_neu_pertPlt_vert <- ggarrange(plotPerts(pert_stats_DF, "t_test", "NPC", topN = 10),
+                                  plotPerts(pert_stats_DF, "t_test", "NEU", topN = 10),
+                                  common.legend = T, legend = "bottom", nrow = 2)
+
+ggsave(filename = sprintf("%s/pert_stats_plot.pdf", dirname(pertFile)),
+       plot = npc_neu_pertPlt_vert, height = 12, width = 6)
