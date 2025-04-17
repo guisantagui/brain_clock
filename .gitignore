@@ -10,6 +10,7 @@ data/*
 **/*.png
 **/*.gmt
 **/*.rnk
+**/.globus_env
 !data/dataset_parsing/
 data/dataset_parsing/*
 !data/dataset_parsing/tbi_data_files.csv
