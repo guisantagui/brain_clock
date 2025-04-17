@@ -56,6 +56,7 @@ Results of model training will be saved in `results/models/second_round_model/`.
 Here we will use the final model to compute the transcriptional ages of:
 - The perturbation data.
 - The single cell pseudobulk data.
+
 These samples are included in `results/preprocessing/second_round/data_noCerebell_onlyAge_svaAdj.csv`. After computing the transcriptional ages, this pipeline computes significance tests for differences in transcriptional ages either between control and perturbed samples, and between young and old samples.
 To run the model testing run:
 ```bash
