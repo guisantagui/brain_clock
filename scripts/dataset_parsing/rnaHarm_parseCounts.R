@@ -116,24 +116,23 @@ counts2TPMs <- function(countDF,
 # Directory stuff
 ################################################################################
 
-outDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/"
+outDir <- "./results/parsed/"
 
 if(!dir.exists(outDir)){
         dir.create(outDir, recursive = T)
 }
 
-# Read RNAseqHarmonization, freshMicro and LBP files
+# Read RNAseqHarmonization and LBP files
 ################################################################################
 
-RNAseqHarmDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/expression/RNAseqHarm/"
-feshMicroDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/expression/freshMicro/"
-LBPDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/expression/LBP/"
+RNAseqHarmDir <- "./data/expression/RNAseqHarm/"
+LBPDir <- "./data/expression/LBP/"
 
-rnaHarm_intMetDatFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/metadata_parsed/RNAseq_Harmonization_ind_all.csv"
+rnaHarm_intMetDatFile <- "./results/metadata_parsed/RNAseq_Harmonization_ind_all.csv"
 
 indMetDat <- read.csv(rnaHarm_intMetDatFile, row.names = 1)
 
-ROSMAP_metDat <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/metadata/ROSMAP/ROSMAP_clinical.csv"
+ROSMAP_metDat <- "./metadata/ROSMAP/ROSMAP_clinical.csv"
 
 ROSMAP_metDat <- read.csv(ROSMAP_metDat, row.names = 1)
 
@@ -158,9 +157,6 @@ ROSMAP3 <- read.table(paste0(RNAseqHarmDir,
 ROSMAP4 <- read.table(paste0(RNAseqHarmDir,
                              "ROSMAP_batch4_gene_all_counts_matrix_clean.txt"),
                       header = T)
-
-freshMicro <- read.csv(paste0(feshMicroDir, "RNAseq_count_matrix.csv"), row.names = 1)
-freshMicro_geneInfo <- read.csv(paste0(feshMicroDir, "RNAseq_GeneInfo.csv"), row.names = 1)
 
 LBP <- read.csv(paste0(LBPDir, "LBP_FlagshipPaper_featureCounts.csv"))
 
@@ -325,28 +321,9 @@ write.csv(RNAseqHarm_allCounts, paste0(outDir, "RNAseqHarm_allCounts.csv"))
 
 plot(density(log(RNAseqHarm_allTPMs)))
 
-
-# Obtain TPMs of freshMicro and LBP datasets
-geneInfo_freshMicro <- getENSEMBL_ID_info(rownames(freshMicro),
-                                          mart = human, filt = "ensembl_gene_id")
-
-geneInfo_LBP <- getENSEMBL_ID_info(rownames(LBP),
-                                   mart = human,
-                                   filt = "ensembl_gene_id_version")
-
-freshMicro_TPMs <- counts2TPMs(freshMicro,
-                               geneInfo = geneInfo_freshMicro,
-                               IDsIn = "ensembl_gene_id_orig")
-
 LBP_TPMs <- counts2TPMs(LBP,
                         geneInfo = geneInfo_LBP,
                         IDsIn = "ensembl_gene_id_version_orig")
-
-
-sum(gsub("\\..*", "", rownames(freshMicro_TPMs)) %in% gsub("\\..*", "", colnames(RNAseqHarm_allTPMs)))/nrow(freshMicro_TPMs)
-# All the genes in freshMicro_TPMs dataset are in the RNAseqHarm one.
-sum(gsub("\\..*", "", colnames(RNAseqHarm_allTPMs)) %in% gsub("\\..*", "", rownames(freshMicro_TPMs)))/ncol(RNAseqHarm_allTPMs)
-# 31.2% the genes in RNAseqHarm dataset are in the freshMicro_TPMs one.
 
 sum(gsub("\\..*", "", rownames(LBP_TPMs)) %in% gsub("\\..*", "", colnames(RNAseqHarm_allTPMs)))/nrow(LBP_TPMs)
 # 99.9% of the genes in LBP_TPMs dataset are in the RNAseqHarm one.
@@ -354,16 +331,16 @@ sum(gsub("\\..*", "", colnames(RNAseqHarm_allTPMs)) %in% gsub("\\..*", "", rowna
 # 97% of the genes in RNAseqHarm dataset are in the LBP_TPMs one.
 
 # The overlap of RNAseqHarm and LBP is quite significant in terms of genome
-# covered, so we might merge them.
+# covered, so we can merge them.
 
 # Go through LBP metadata to give it the shape we used for generating the
 # integrated RNAseq Harmonization metadata
 
-LBP_parsedMetDat <- read.csv("/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/metadata_parsed/LBP_ind_all.csv")
+LBP_parsedMetDat <- read.csv("./results/metadata_parsed/LBP_ind_all.csv")
 
-LBP_metDatInd <- read.csv("/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/metadata/LBP/LBP_individual_metadata.csv")
-LBP_metDatAss <- read.csv("/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/metadata/LBP/LBP_assay_RNAseq_metadata.csv")
-LBP_metDatBiosp <- read.csv("/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/metadata/LBP/LBP_biospecimen_metadata.csv")
+LBP_metDatInd <- read.csv("./data/metadata/LBP/LBP_individual_metadata.csv")
+LBP_metDatAss <- read.csv("./data/metadata/LBP/LBP_assay_RNAseq_metadata.csv")
+LBP_metDatBiosp <- read.csv("./data/metadata/LBP/LBP_biospecimen_metadata.csv")
 
 LBP_metDatInt <- data.frame(specimenID = LBP_metDatBiosp$specimenID[make.names(LBP_metDatBiosp$specimenID) %in% colnames(LBP_TPMs)])
 LBP_metDatInt$platform <- LBP_metDatAss$platform[match(LBP_metDatInt$specimenID,
@@ -436,9 +413,6 @@ write.csv(LBP_TPMs, file = paste0(outDir, "LBP_TPMs.csv"))
 write.csv(geneInfo, paste0(outDir, "geneInfo_rnaSeqHarm.csv"))
 write.csv(geneInfo_LBP, paste0(outDir, "geneInfo_LBP.csv"))
 
-# freshMicro otherwise covers only 31% of the genes in RNAseqHarm, so better not
-# to include it.
-
 # Load GTEx data.
 
 GTEx_TPMs <- read.csv(paste0(outDir, "GTEx_allTPMs.csv"), row.names = 1)
@@ -450,37 +424,3 @@ geneInfo_GTEx <- getENSEMBL_ID_info(GTEx_TPMs$Name,
 GTEx_TPMs[!GTEx_TPMs$Name %in% geneInfo_GTEx$ensembl_gene_id_version_orig, 1:3]
 
 write.csv(geneInfo_GTEx, paste0(outDir, "geneInfo_GTEx.csv"))
-
-# Remove genes from GTEx_TPMs that are not in the GeneInfo file, as they won't
-# 
-
-getBM(attributes = c("hgnc_symbol",
-                     "ensembl_gene_id",
-                     "chromosome_name",
-                     "start_position",
-                     "end_position"),
-      filters = "ensembl_gene_id",
-      values = "ENSG00000236743",
-      mart = human)
-
-sum(rownames(LBP_TPMs) %in% colnames(RNAseqHarm_allTPMs))/ncol(RNAseqHarm_allTPMs)
-
-
-
-getBM(attributes = c("hgnc_symbol",
-                     "ensembl_gene_id",
-                     "chromosome_name",
-                     "start_position",
-                     "end_position"),
-      filters = "ensembl_gene_id",
-      values = "ENSG00000236743",
-      mart = human)
-
-getBM(attributes = c("hgnc_symbol",
-                     "ensembl_gene_id",
-                     "chromosome_name",
-                     "start_position",
-                     "end_position"),
-      filters = "hgnc_symbol",
-      values = "RP5-857K21.15",
-      mart = human)

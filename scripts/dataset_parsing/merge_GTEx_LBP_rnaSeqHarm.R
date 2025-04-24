@@ -1,6 +1,6 @@
 library(biomaRt)
 
-outDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/"
+outDir <- "./results/parsed/"
 
 # This function accepts a vector of ensembl IDs and returns info about 
 # the updated version, symbols, start pos, end pos and size
@@ -117,21 +117,21 @@ counts2TPMs <- function(countDF,
 
 
 # Metge GTEx, RNAseqHarm and LBP datasets.
-LBP_TPMs_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/LBP_TPMs.csv"
-GTEx_TPMs_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/GTEx_allTPMs.csv"
-RNAseqHarm_TPMs_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/RNAseqHarm_allTPMs.csv"
+LBP_TPMs_file <- "./results/parsed/LBP_TPMs.csv"
+GTEx_TPMs_file <- "./results/parsed/GTEx_allTPMs.csv"
+RNAseqHarm_TPMs_file <- "./results/parsed/RNAseqHarm_allTPMs.csv"
 
-LBP_counts_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/expression/LBP/LBP_FlagshipPaper_featureCounts.csv"
-GTEx_counts_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/GTEx_allCounts.csv"
-RNAseqHarm_counts_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/RNAseqHarm_allCounts.csv"
+LBP_counts_file <- "./data/expression/LBP/LBP_FlagshipPaper_featureCounts.csv"
+GTEx_counts_file <- "./results/parsed/GTEx_allCounts.csv"
+RNAseqHarm_counts_file <- "./results/parsed/RNAseqHarm_allCounts.csv"
 
-LBP_metDat_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/LBP_metadata_unified.csv"
-GTEx_metDat_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/GTEx_metadata_unified.csv"
-RNAseqHarm_metDat_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/metadata_parsed/RNAseq_Harmonization_ind_all_ROSMAPBtch.csv"
+LBP_metDat_file <- "./results/parsed/LBP_metadata_unified.csv"
+GTEx_metDat_file <- "./results/parsed/GTEx_metadata_unified.csv"
+RNAseqHarm_metDat_file <- "./results/metadata_parsed/RNAseq_Harmonization_ind_all_ROSMAPBtch.csv"
 
-LBP_geneInfo_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/geneInfo_LBP.csv"
-GTEx_geneInfo_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/geneInfo_GTEx.csv"
-RNAseqHarm_geneInfo_file <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/geneInfo_rnaSeqHarm.csv"
+LBP_geneInfo_file <- "./results/parsed/geneInfo_LBP.csv"
+GTEx_geneInfo_file <- "./results/parsed/geneInfo_GTEx.csv"
+RNAseqHarm_geneInfo_file <- "./results/parsed/geneInfo_rnaSeqHarm.csv"
         
 LBP_TPMs <- read.csv(LBP_TPMs_file, row.names = 1)
 GTEx_TPMs <- read.csv(GTEx_TPMs_file, row.names = 1)
