@@ -11,36 +11,27 @@ if (!require("biomaRt", quietly = T)){
 if (!require("org.Hs.eg.db", quietly = T)){
         BiocManager::install("org.Hs.eg.db", update = F)
 }
+if (!require(plotUtils)){
+        devtools::install_github("guisantagui/plotUtils", upgrade = "never")
+}
+
+library(plotUtils)
 library(biomaRt)
 library(org.Hs.eg.db)
-
-
-#if(!require("mygene", quietly = T)) BiocManager::install("mygene", update = F)
-#library(mygene)
-#if(!require("rentrez", quietly = T)) install.packages("rentrez")
-#library(mygene)
 
 # Directory stuff
 ################################################################################
 baseURL <- "https://aging.brain-map.org"
 
-setwd("/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock_paper_repo/brain_clock/scripts/dataset_parsing/")
-tbiURLFile <- "../../data/dataset_parsing/tbi_data_files.csv"
-#outDir <- "../../results/dataset_parsi/tbi_raw/"
+setwd("../..")
+tbiURLFile <- "./data/dataset_parsing/tbi_data_files.csv"
 outDir <- sprintf("%s/tbi_raw/", dirname(tbiURLFile))
-parsedDir <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/"
-metDatFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/combined_metDat.csv"
-
-#gene2ensemblURL <- "ftp://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz"
-#gene2ensemblFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/gene2ensembl/gene2ensembl"
-
-#gene2ensembl <- read.table(gene2ensemblFile, sep = "\t", header = F)
-#colnames(gene2ensembl) <- c()
+parsedDir <- "./results/parsed/"
+metDatFile <- "./results/parsed/combined_metDat.csv"
 
 if(!dir.exists(outDir)){
         dir.create(outDir, recursive = T)
 }
-
 
 # Functions
 ################################################################################
@@ -51,11 +42,6 @@ getENSEMBL_ID_info <- function(ensembl_list,
                                mart,
                                removeNAs = T,
                                filt = "ensembl_gene_id_version"){
-        #ensembl_list <- gsub("X", "", colnames(countMat))
-        #mart <- human
-        #filt <- "entrezgene_id"
-        
-        
         print(sprintf("Mapping the %s...", filt))
         if(filt == "ensembl_gene_id_version"){
                 atts <- c("hgnc_symbol",
@@ -178,26 +164,6 @@ getENSEMBL_ID_info <- function(ensembl_list,
         return(outDF)
 }
 
-# Function to fetch ENSEMBL ID for a single Entrez ID
-fetch_ensembl_id <- function(entrez_id) {
-        links <- entrez_link(dbfrom = "gene", id = entrez_id, db = "ensembl")
-        if (!is.null(links$links$gene_ensembl)) {
-                return(links$links$gene_ensembl[1])
-        } else {
-                return(NA)
-        }
-}
-#tst2 <- entrez_link(dbfrom = "gene", id = notMapped[1], db = "all")
-#tst3 <- entrez_link(dbfrom = "gene", id = "1", db = "all")
-
-#lapply(tst3$links, function(x) x)
-
-#tst2$links$ense
-#fetch_ensembl_id(notMapped[1])
-
-#notMappedInfo <- getGenes(notMapped, fields = "all")
-
-
 # Parse metadata
 ################################################################################
 #metDat <- read.csv(metDatFile)
@@ -278,9 +244,10 @@ sampsWNAs <- rownames(countMat)[apply(countMat, 1, function(x) any(is.na(x)))]
 featsWNAs <- colnames(countMat)[apply(countMat, 2, function(x) any(is.na(x)))]
 countMat[sampsWNAs, featsWNAs]
 
-# H14.09.022.TCx.01_TCx has missing values in 22769, so let's just remove this
-# sample
-countMat <- countMat[!rownames(countMat) %in% sampsWNAs, ]
+# No sample has NAs
+
+# Change gene names to ENSEMBL
+################################################################################
 
 # Get the gene info for the colnames of countMat
 
@@ -320,7 +287,6 @@ countMat_dups[, order(colnames(countMat_dups))]
 # Get the sum of the counts of the genes that after conversion have the same 
 # ensembl ID.
 for(i in seq_along(ensemblDups)){
-        #i <- 1
         dup <- ensemblDups[i]
         dupMat <- countMat[, colnames(countMat) == dup]
         sumsMat <- matrix(rowSums(dupMat),
@@ -333,12 +299,11 @@ for(i in seq_along(ensemblDups)){
 }
 unique(colnames(countMat)[duplicated(colnames(countMat))])
 
-# Check the overlap with the integrated TPM matrix
-dataFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/combined_counts.csv"
+# Check the overlap with the integrated counts matrix and merge them
+################################################################################
+dataFile <- "./results/parsed/combined_counts.csv"
 
-dat <- data.frame(data.table::fread(dataFile))
-rownames(dat) <- dat$V1
-dat <- dat[, colnames(dat) != "V1"]
+dat <- read_table_fast(dataFile, row.names = 1)
 
 sum(colnames(countMat) %in% colnames(dat))/ncol(countMat)
 sum(colnames(countMat) %in% colnames(dat))/ncol(dat)
@@ -347,16 +312,10 @@ dim(dat)
 dim(countMat)
 length(intersect(colnames(countMat), colnames(dat)))
 
-# Load the model to see if the features significant in the training are among 
-# the ones kept.
-mod <- readRDS("/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/models/sascha_procs/modFuncsAlpha0.5.rds")
-
-modelGenes <- mod@model$coefficients_table$names[mod@model$coefficients_table$coefficients != 0 & mod@model$coefficients_table$names != "Intercept"]
-
-sum(!modelGenes %in% geneInfo$symbol)
-modelGenes[!modelGenes %in% geneInfo$symbol]
-# Only two genes are left out, so let's try to merge the datasets and see how preprocessing and training
-# with these samples works out.
+# Note: the overlap with the two datasets is not great, but we checked if the 
+# predictors we obtained with a first version of the clock trained without
+# considering TBI database, and only two genes are not in the overlap, so we
+# proceeded to merge them.
 commGenes <- intersect(colnames(countMat), colnames(dat))
 
 counts_tbi_rest <- rbind.data.frame(data.frame(countMat[, commGenes]),
@@ -365,8 +324,10 @@ counts_tbi_rest <- rbind.data.frame(data.frame(countMat[, commGenes]),
 dim(counts_tbi_rest)
 
 # Create a metadata file of the TBI samples
-metDat <- read.csv("/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/results/parsed/combined_metDat.csv", row.names = 1)
-tbiMetDatFile <- "/Users/guillem.santamaria/Documents/postdoc/comput/brain_clock/data/DonorInformation.csv"
+################################################################################
+
+metDat <- read.csv("./results/parsed/combined_metDat.csv", row.names = 1)
+tbiMetDatFile <- "./data/dataset_parsing/DonorInformation.csv"
 tbiMetDat <- read.csv(tbiMetDatFile)
 
 tbiMetDat_parsed <- data.frame(specimenID = rownames(countMat),
@@ -446,7 +407,7 @@ tbiMetDat_parsed <- tbiMetDat_parsed[tbiMetDat$age_at_first_tbi[match(tbiMetDat_
 # Merge metadata with the rest
 metDat_merged <- rbind.data.frame(metDat, tbiMetDat_parsed)
 
-# Remove from the dounts dataframe the samples that are not in the metadata
+# Remove from the counts dataframe the samples that are not in the metadata
 # dataframe
 counts_tbi_rest <- counts_tbi_rest[rownames(counts_tbi_rest) %in% make.names(metDat_merged$specimenID), ]
 
@@ -460,67 +421,10 @@ ncol(tbiMetDat_parsed)
 
 # There are some samples from Mayo study that are not in the counts DF. These
 # samples were not present in the Mayo_gene_all_counts_matrix_clean.txt that
-# we obtained from synapse.org. So no problem.
+# we obtained from synapse.org. So no problem. Just remove them from the metadata
 metDat_merged[!make.names(metDat_merged$specimenID) %in% rownames(counts_tbi_rest), ]
+metDat_merged <- metDat_merged[make.names(metDat_merged$specimenID) %in% rownames(counts_tbi_rest), ]
 
 write.csv(tbiMetDat_parsed, file = paste0(parsedDir, "TBI_metadata_unified.csv"))
 write.csv(metDat_merged, file = paste0(parsedDir, "combined_metDat_wTBI.csv"))
-write.csv(counts_tbi_rest, file = paste0(parsedDir, "combined_counts_wTBI.csv"))
-
-
-entrez_to_symb_ncbi <- function(entrez){
-        entrez <- notMapped[1:5]
-        entrezCollps <- paste(entrez, collapse = ",")
-        print(entrezCollps)
-        rootDir <- outDir
-        tempDir <- paste0(rootDir, "temp/")
-        if(!dir.exists(tempDir)){
-                dir.create(tempDir)
-        }
-        
-        dwComm <- sprintf("datasets download gene gene-id %s --filename %sgenes.zip",
-                          entrezCollps,
-                          tempDir)
-        system(dwComm)
-        
-        commUnzip <- sprintf("unzip -o %sgenes.zip -d %s",
-                             tempDir,
-                             tempDir)
-        
-        system(commUnzip)
-        
-        jsonFile <- paste0(tempDir, "ncbi_dataset/data/data_report.jsonl")
-        
-        jsonDF <- as.data.frame(ndjson::stream_in(jsonFile, cls = "tbl"))
-        
-        synonyms <- jsonDF[, "symbol"]
-        
-        synonyms <- apply(synonyms, 1,
-                          function(x) paste(x[!is.na(x)],
-                                            collapse = ","))
-        jsonDF_red <- jsonDF[, c("geneId", "symbol")]
-        jsonDF_red$synonyms <- synonyms
-        newSymbsVec <- c()
-        ncbiIDVec <- c()
-        for(s in symbs){
-                grepVec <- which(sapply(jsonDF_red$synonyms,
-                                        function(x) s %in% strsplit(x,
-                                                                    ",")[[1]]))[1]
-                if(length(grepVec) == 0){
-                        newSymb <- NA
-                        ncbiID <- NA
-                }else{
-                        newSymb <- jsonDF_red$symbol[grepVec]
-                        newNcbiID <- jsonDF_red$geneId[grepVec]
-                }
-                newSymbsVec <- c(newSymbsVec, newSymb)
-                ncbiIDVec <- c(ncbiIDVec, newNcbiID)
-        }
-        commRmTmp <- sprintf("rm -rf %s",
-                             tempDir)
-        system(commRmTmp)
-        out_DF <- data.frame(symbol = symbs,
-                             newSymbol = newSymbsVec,
-                             entrezid =ncbiIDVec)
-        return(out_DF)
-}
+write_table_fast(counts_tbi_rest, f = paste0(parsedDir, "combined_counts_wTBI.csv"))

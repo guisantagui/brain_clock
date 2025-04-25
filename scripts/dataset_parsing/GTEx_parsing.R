@@ -1,6 +1,10 @@
-# GTEx parsing
+################################################################################
+# Brain clock: Parse GTEx counts and metadata files into a single counts file  #
+# and a curated metadata file                                                  #
+################################################################################
 
-brainTPMsDir <- "./data/gtex/tpms/"
+setwd("../..")
+
 brainCountsDir <- "./data/gtex/counts/"
 outDir <- "./results/parsed/"
 
@@ -11,11 +15,6 @@ metDat1 <- read.delim(metDatFile1)
 metDatFile2 <- "./data/gtex/GTEx_Analysis_2017-06-05_v8_Annotations_SubjectPhenotypesDS.txt"
 
 metDat2 <- read.delim(metDatFile2)
-
-table(metDat2$AGE)
-table(metDat2$DTHHRDY)
-table(metDat2$DTHMNNR)
-table(metDat2$X.Users.elvirakinzina.src.Aging_clock.data.GTEx_v8.annotations.GTEx_Analysis_2017.06.05_v8_Annotations_SubjectPhenotypesDS.txtDTHLUCOD)
 
 createGTExMat <- function(fileDir){
         brainFiles <- list.files(fileDir, full.names = T)
@@ -79,38 +78,29 @@ createGTExMat <- function(fileDir){
         return(out)
 }
 
-tpmOut <- createGTExMat(brainTPMsDir)
 countOut <- createGTExMat(brainCountsDir)
 
-brainTPMs <- tpmOut$combinedDF
 brainCounts <- countOut$combinedDF
 
-brainCounts[1:10, 1:10]
 
-
-View(metDat2)
-
-
-
-
-gtex_metDat_unified <- data.frame(specimenID = metDat1$SAMPID[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)],
-                                  platform = metDat1$SMGEBTCHT[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)],
-                                  RIN = metDat1$SMRIN[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)],
-                                  libraryPrep = rep(NA, sum(make.names(metDat1$SAMPID) %in% colnames(brainTPMs))),
-                                  libraryPreparationMethod =rep(NA, sum(make.names(metDat1$SAMPID) %in% colnames(brainTPMs))),
-                                  runType =rep(NA, sum(make.names(metDat1$SAMPID) %in% colnames(brainTPMs))),
-                                  readLength = metDat1$SMRDLGTH[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)])
+gtex_metDat_unified <- data.frame(specimenID = metDat1$SAMPID[make.names(metDat1$SAMPID) %in% colnames(brainCounts)],
+                                  platform = metDat1$SMGEBTCHT[make.names(metDat1$SAMPID) %in% colnames(brainCounts)],
+                                  RIN = metDat1$SMRIN[make.names(metDat1$SAMPID) %in% colnames(brainCounts)],
+                                  libraryPrep = rep(NA, sum(make.names(metDat1$SAMPID) %in% colnames(brainCounts))),
+                                  libraryPreparationMethod =rep(NA, sum(make.names(metDat1$SAMPID) %in% colnames(brainCounts))),
+                                  runType =rep(NA, sum(make.names(metDat1$SAMPID) %in% colnames(brainCounts))),
+                                  readLength = metDat1$SMRDLGTH[make.names(metDat1$SAMPID) %in% colnames(brainCounts)])
 
 gtex_metDat_unified$individualID <- sapply(gtex_metDat_unified$specimenID,
                                            function(x) paste(strsplit(x, split = "-")[[1]][1],
                                                              strsplit(x, split = "-")[[1]][2],
                                                              sep = "-"))
 
-gtex_metDat_unified$organ <- tolower(metDat1$SMTS[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)])
-gtex_metDat_unified$tissue <- metDat1$SMTSD[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)]
+gtex_metDat_unified$organ <- tolower(metDat1$SMTS[make.names(metDat1$SAMPID) %in% colnames(brainCounts)])
+gtex_metDat_unified$tissue <- metDat1$SMTSD[make.names(metDat1$SAMPID) %in% colnames(brainCounts)]
 
 gtex_metDat_unified$tissue <- gsub("Brain - ", "", gtex_metDat_unified$tissue)
-gtex_metDat_unified$assay <- metDat1$SMAFRZE[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)]
+gtex_metDat_unified$assay <- metDat1$SMAFRZE[make.names(metDat1$SAMPID) %in% colnames(brainCounts)]
 gtex_metDat_unified$assay <- gsub("RNASEQ", "rnaSeq", gtex_metDat_unified$assay)
 gtex_metDat_unified$exclude <- rep(NA, nrow(gtex_metDat_unified))
 gtex_metDat_unified$excludeReason <- rep("", nrow(gtex_metDat_unified))
@@ -133,9 +123,9 @@ gtex_metDat_unified$pmi <- metDat2$TRISCH[match(gtex_metDat_unified$individualID
 gtex_metDat_unified$Braak <- rep(NA, nrow(gtex_metDat_unified))
 gtex_metDat_unified$diagn_4BrainClck <- rep("Control", nrow(gtex_metDat_unified))
 gtex_metDat_unified$substudy <- rep("GTEx", nrow(gtex_metDat_unified))
-gtex_metDat_unified$batch_rna <- metDat1$SMNABTCH[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)]
+gtex_metDat_unified$batch_rna <- metDat1$SMNABTCH[make.names(metDat1$SAMPID) %in% colnames(brainCounts)]
 gtex_metDat_unified$batch_lib <- rep(NA, nrow(gtex_metDat_unified))
-gtex_metDat_unified$batch_seq <- metDat1$SMGEBTCH[make.names(metDat1$SAMPID) %in% colnames(brainTPMs)]
+gtex_metDat_unified$batch_seq <- metDat1$SMGEBTCH[make.names(metDat1$SAMPID) %in% colnames(brainCounts)]
 
 # These categories code neurodegeneration, schizophrenia and drug abuse.
 # We are going to remove the samples that have drug abuse or schizophrenia from
@@ -160,11 +150,10 @@ gtex_metDat_unified <- gtex_metDat_unified[!gtex_metDat_unified$individualID %in
 gtex_metDat_unified$diagn_4BrainClck[!gtex_metDat_unified$individualID %in% ctrls] <- "Rest"
 
 
-
 write.csv(gtex_metDat_unified,
           file = paste0(outDir, "GTEx_metadata_unified.csv"))
 
-# Remove from TPMs and counts files the samples that are not in metadata and
+# Remove from counts dataframe the samples that are not in metadata and
 # save as csv.
 
 removed <- colnames(brainCounts)[!colnames(brainCounts) %in% c(colnames(brainCounts)[1:3], make.names(gtex_metDat_unified$specimenID))]
@@ -176,12 +165,7 @@ all(sapply(removed, function(x) paste(strsplit(x, split = ".", fixed = T)[[1]][1
                                       sep = ".")) %in% make.names(indivsDrugSchiz))
 # All fine
 
-brainTPMs <- brainTPMs[, colnames(brainTPMs) %in% c(colnames(brainTPMs)[1:3],
-                                                    make.names(gtex_metDat_unified$specimenID))]
-
 brainCounts <- brainCounts[, colnames(brainCounts) %in% c(colnames(brainCounts)[1:3],
                                                           make.names(gtex_metDat_unified$specimenID))]
 
-
-write.csv(brainTPMs, file = paste0(outDir, "GTEx_allTPMs.csv"))
 write.csv(brainCounts, file = paste0(outDir, "GTEx_allCounts.csv"))

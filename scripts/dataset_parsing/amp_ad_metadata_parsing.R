@@ -17,7 +17,6 @@ if (!dir.exists(outDir)){
 # Downloaded from https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyData?Study=syn26337520
 
 LBP <- "./data/metadata/LBP"
-LBP_files <- list.files(LBP, full.names = T)
 LBPInd <- read.csv(paste(LBP, "LBP_individual_metadata.csv", sep = "/"))
 
 isCtrl <- LBPInd$diagnosis == "control"
@@ -32,7 +31,6 @@ LBPInd$race <- gsub("Black or African American", "Black", LBPInd$race)
 LBPIndCtrl <- LBPInd[LBPInd$diagn_4BrainClck == "Control", ]
 
 write.csv(LBPInd, paste0(outDir, "LBP_ind_all.csv"))
-write.csv(LBPIndCtrl, paste0(outDir, "LBP_ind_ctrls.csv"))
 
 # RNAseq_Harmonization
 ################################################################################
@@ -44,8 +42,6 @@ write.csv(LBPIndCtrl, paste0(outDir, "LBP_ind_ctrls.csv"))
 # metadata.
 
 RNAseqHarm <- "./data/metadata/RNAseq_Harmonization"
-RNAseqHarmFiles <- list.files(RNAseqHarm, full.names = T)
-RNAseqHarmFiles <- RNAseqHarmFiles[grepl(".csv", RNAseqHarmFiles)]
 
 MayoHarmInd <- read.csv(paste(RNAseqHarm,
                               "/RNAseq_Harmonization_Mayo_combined_metadata.csv",
@@ -90,35 +86,6 @@ MayoHarmInd <- MayoHarmInd[MayoHarmInd$ageDeath != "90+" & MayoHarmInd$ageDeath 
 MayoHarmInd$ageDeath <- as.numeric(MayoHarmInd$ageDeath)
 
 MayoHarmIndCtrl <- MayoHarmInd[MayoHarmInd$diagn_4BrainClck == "Control", ]
-
-unique(MayoHarmIndCtrl$individualID)
-
-# There are individualIDs duplicated, so check what they are
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][1], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][2], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][3], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][4], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][5], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][6], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][7], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][8], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][9], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][10], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][11], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][12], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][13], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][14], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][15], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][16], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][17], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][18], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][19], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][20], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][21], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][22], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][23], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][24], ]
-MayoHarmIndCtrl[MayoHarmIndCtrl$individualID == MayoHarmIndCtrl$individualID[duplicated(MayoHarmIndCtrl$individualID)][25], ]
 
 # The duplicated ones is because there is a cerebellum sample for that 
 # individual. Probably we will need to remove it because it is a very different
@@ -170,12 +137,6 @@ write.csv(ROSMAPHarmInd, file = paste0(outDir, "ROSMAP_Harm_parsed.csv"))
 # Find the columns with common names and change the colnames with discrepancies
 commCols <- colnames(MayoHarmIndCtrl)[colnames(MayoHarmInd) %in% colnames(MSBBHarmInd) & colnames(MayoHarmInd) %in% colnames(ROSMAPHarmInd)]
 
-colnames(ROSMAPHarmInd)[!colnames(ROSMAPHarmInd) %in% commCols]
-
-colnames(MayoHarmInd)[!colnames(MayoHarmInd) %in% commCols]
-
-colnames(MSBBHarmInd)[!colnames(MayoHarmInd) %in% commCols]
-
 colnames(ROSMAPHarmInd) <- gsub("apoe_genotype",
                                 "apoeGenotype",
                                 colnames(ROSMAPHarmInd))
@@ -212,10 +173,6 @@ MSBBHarmInd$race <- gsub("U", "Unknown", MSBBHarmInd$race)
 # Reassign commCols to account for the unifying changes and check that the
 # format of the variables in the columns with common name is the same
 commCols <- colnames(MayoHarmInd)[colnames(MayoHarmInd) %in% colnames(MSBBHarmInd) & colnames(MayoHarmInd) %in% colnames(ROSMAPHarmInd)]
-
-head(ROSMAPHarmInd[, commCols])
-head(MayoHarmInd[, commCols])
-head(MSBBHarmInd[, commCols])
 
 # Add a column of substudy and merge datasets.
 ROSMAPHarmInd$substudy <- rep("ROSMAP", nrow(ROSMAPHarmInd))

@@ -1,6 +1,30 @@
+################################################################################
+# Brain clock: Merge GTEx, LBP and RNAseq Harmonization datasets               #
+################################################################################
+
+if (!require("BiocManager", quietly = TRUE)){
+        install.packages("BiocManager")
+}
+if (!require("biomaRt")){
+        BiocManager::install("biomaRt", update = F)
+}
+if (!require(plotUtils)){
+        devtools::install_github("guisantagui/plotUtils", upgrade = "never")
+}
+
 library(biomaRt)
+library(plotUtils)
+
+# Directory stuff
+################################################################################
+setwd("../..")
 
 outDir <- "./results/parsed/"
+
+create_dir_if_not(outDir)
+
+# Functions
+################################################################################
 
 # This function accepts a vector of ensembl IDs and returns info about 
 # the updated version, symbols, start pos, end pos and size
@@ -89,38 +113,20 @@ getENSEMBL_ID_info <- function(ensembl_list,
         return(outDF)
 }
 
-
-# Given a counts matrix with genes in rows and samples in columns, and a 
-# geneInfo dataframe containing gene sizes, returns a matrix of TPMs.
-counts2TPMs <- function(countDF,
-                        geneInfo,
-                        IDsIn = "ensembl_gene_id_version_orig",
-                        genesInCols = F){
-        if(genesInCols){
-                inDF <- t(countDF)
-        }else{
-                inDF <- countDF
+sum_dups <- function(m){
+        dup_genes <- rownames(m)[duplicated(rownames(m))]
+        for(i in seq_along(dup_genes)){
+                dg <- dup_genes[i]
+                nu_vec <- colSums(m[rownames(m) == dg, ])
+                matches <- which(rownames(m) == dg)
+                m[matches[1], ] <- nu_vec
+                m <- m[-matches[-1], ]
         }
-        # Filter out genes that are not in geneInfo DF (don't have size)
-        inDF <- inDF[rownames(inDF) %in% geneInfo[, IDsIn], ]
-        # Get a vector of gene sizes
-        sizeVec <- geneInfo$size[match(rownames(inDF), geneInfo[, IDsIn])]
-        # Obtain TPMs
-        preTPMs <- inDF/sizeVec
-        TPMs <- t(t(preTPMs) * 1e6 / colSums(preTPMs))
-        if(genesInCols){
-                TPMs <- t(TPMs)
-        }
-        return(TPMs)
+        return(m)
 }
 
-
-
-# Metge GTEx, RNAseqHarm and LBP datasets.
-LBP_TPMs_file <- "./results/parsed/LBP_TPMs.csv"
-GTEx_TPMs_file <- "./results/parsed/GTEx_allTPMs.csv"
-RNAseqHarm_TPMs_file <- "./results/parsed/RNAseqHarm_allTPMs.csv"
-
+# Load the data
+################################################################################
 LBP_counts_file <- "./data/expression/LBP/LBP_FlagshipPaper_featureCounts.csv"
 GTEx_counts_file <- "./results/parsed/GTEx_allCounts.csv"
 RNAseqHarm_counts_file <- "./results/parsed/RNAseqHarm_allCounts.csv"
@@ -129,83 +135,45 @@ LBP_metDat_file <- "./results/parsed/LBP_metadata_unified.csv"
 GTEx_metDat_file <- "./results/parsed/GTEx_metadata_unified.csv"
 RNAseqHarm_metDat_file <- "./results/metadata_parsed/RNAseq_Harmonization_ind_all_ROSMAPBtch.csv"
 
-LBP_geneInfo_file <- "./results/parsed/geneInfo_LBP.csv"
-GTEx_geneInfo_file <- "./results/parsed/geneInfo_GTEx.csv"
-RNAseqHarm_geneInfo_file <- "./results/parsed/geneInfo_rnaSeqHarm.csv"
-        
-LBP_TPMs <- read.csv(LBP_TPMs_file, row.names = 1)
-GTEx_TPMs <- read.csv(GTEx_TPMs_file, row.names = 1)
-RNAseqHarm_TPMs <- read.csv(RNAseqHarm_TPMs_file, row.names = 1)
+LBP_geneInfo_file <- "./results/parsed/LBP_geneInfo.csv"
+GTEx_geneInfo_file <- "./results/parsed/GTEx_geneInfo.csv"
+RNAseqHarm_geneInfo_file <- "./results/parsed/RNAseqHarm_geneInfo.csv"
 
-LBP_counts <- read.csv(LBP_counts_file, row.names = 1)
-GTEx_counts <- read.csv(GTEx_counts_file, row.names = 1)
-RNAseqHarm_counts <- read.csv(RNAseqHarm_counts_file, row.names = 1)
+LBP_counts <- read_table_fast(LBP_counts_file, row.names = 1)
+GTEx_counts <- read_table_fast(GTEx_counts_file, row.names = 1)
+RNAseqHarm_counts <- read_table_fast(RNAseqHarm_counts_file, row.names = 1)
 
 LBP_metDat <- read.csv(LBP_metDat_file, row.names = 1)
 GTEx_metDat <- read.csv(GTEx_metDat_file, row.names = 1)
 RNAseqHarm_metDat <- read.csv(RNAseqHarm_metDat_file, row.names = 1)
 
-LBP_geneInfo <- read.csv(LBP_geneInfo_file, row.names = 1)
-GTEx_geneInfo <- read.csv(GTEx_geneInfo_file, row.names = 1)
-RNAseqHarm_geneInfo <- read.csv(RNAseqHarm_geneInfo_file, row.names = 1)
+# Create gene info dataframes (for homogenizing gene IDs).
+if (!(file.exists(LBP_geneInfo_file) & file.exists(GTEx_geneInfo_file) & file.exists(RNAseqHarm_geneInfo_file))){
+        human <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
+        LBP_geneInfo <- getENSEMBL_ID_info(rownames(LBP_counts), mart = human)
+        GTEx_geneInfo <- getENSEMBL_ID_info(GTEx_counts$Name,
+                                            mart = human,
+                                            filt = "ensembl_gene_id_version")
+        RNAseqHarm_geneInfo <- getENSEMBL_ID_info(rownames(RNAseqHarm_counts),
+                                                  mart = human)
 
-# Merge TPMs dataframes
+        # Add "PAR_Y" to the gene_id of the genes that map to chromosome Y
+        GTEx_geneInfo$ensembl_gene_id[grepl("PAR_Y", GTEx_geneInfo$ensembl_gene_id_version_orig)] <- paste0(GTEx_geneInfo$ensembl_gene_id[grepl("PAR_Y", GTEx_geneInfo$ensembl_gene_id_version_orig)], "_PAR_Y")
+        # Add "PAR_Y" to the gene_id of the genes that map to chromosome Y
+        LBP_geneInfo$ensembl_gene_id[grepl("PAR_Y", LBP_geneInfo$ensembl_gene_id_version_orig)] <- paste0(LBP_geneInfo$ensembl_gene_id[grepl("PAR_Y", LBP_geneInfo$ensembl_gene_id_version_orig)], "_PAR_Y")
+        RNAseqHarm_geneInfo$ensembl_gene_id[grepl("PAR_Y", RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)] <- paste0(RNAseqHarm_geneInfo$ensembl_gene_id[grepl("PAR_Y", RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)], "_PAR_Y")
 
-all(colnames(RNAseqHarm_TPMs) %in% RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)
-all(rownames(LBP_TPMs) %in% LBP_geneInfo$ensembl_gene_id_version_orig)
-all(rownames(GTEx_TPMs) %in% GTEx_geneInfo$ensembl_gene_id_version_orig)
-sum(GTEx_TPMs$Name %in% GTEx_geneInfo$ensembl_gene_id_version_orig)/nrow(GTEx_TPMs)
-# Remove from GTEx TPMs file the genes that are not in gene info file
+        write.csv(LBP_geneInfo, paste0(outDir, "LBP_geneInfo.csv"))
+        write.csv(GTEx_geneInfo, paste0(outDir, "GTEx_geneInfo.csv"))
+        write.csv(RNAseqHarm_geneInfo, paste0(outDir, "RNAseqHarm_geneInfo.csv"))
+}else{
+        LBP_geneInfo <- read.csv(LBP_geneInfo_file, row.names = 1)
+        GTEx_geneInfo <- read.csv(GTEx_geneInfo_file, row.names = 1)
+        RNAseqHarm_geneInfo <- read.csv(RNAseqHarm_geneInfo_file, row.names = 1)
+}
 
-GTEx_TPMs <- GTEx_TPMs[GTEx_TPMs$Name %in% GTEx_geneInfo$ensembl_gene_id_version_orig, ]
-
-
-
-rownames(GTEx_TPMs) <- GTEx_TPMs$Name
-GTEx_TPMs <- GTEx_TPMs[, !colnames(GTEx_TPMs) %in% c("id", "Name", "Description")]
-
-# Add "PAR_Y" to the gene_id of the genes that map to chromosome Y
-GTEx_geneInfo$ensembl_gene_id[grepl("PAR_Y", GTEx_geneInfo$ensembl_gene_id_version_orig)] <- paste0(GTEx_geneInfo$ensembl_gene_id[grepl("PAR_Y", GTEx_geneInfo$ensembl_gene_id_version_orig)], "_PAR_Y")
-# Add "PAR_Y" to the gene_id of the genes that map to chromosome Y
-LBP_geneInfo$ensembl_gene_id[grepl("PAR_Y", LBP_geneInfo$ensembl_gene_id_version_orig)] <- paste0(LBP_geneInfo$ensembl_gene_id[grepl("PAR_Y", LBP_geneInfo$ensembl_gene_id_version_orig)], "_PAR_Y")
-RNAseqHarm_geneInfo$ensembl_gene_id[grepl("PAR_Y", RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)] <- paste0(RNAseqHarm_geneInfo$ensembl_gene_id[grepl("PAR_Y", RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)], "_PAR_Y")
-
-
-gtex_geneIDs <- GTEx_geneInfo$ensembl_gene_id[match(rownames(GTEx_TPMs),
-                                                    GTEx_geneInfo$ensembl_gene_id_version_orig)]
-
-gtex_geneIDs_dups <- gtex_geneIDs[duplicated(gtex_geneIDs)]
-
-gtex_geneIDs_dups
-
-rownames(GTEx_TPMs) <- GTEx_geneInfo$ensembl_gene_id[match(rownames(GTEx_TPMs),
-                                                           GTEx_geneInfo$ensembl_gene_id_version_orig)]
-
-any(duplicated(LBP_geneInfo$ensembl_gene_id[match(rownames(LBP_TPMs),
-                                                  LBP_geneInfo$ensembl_gene_id_version_orig)]))
-
-rownames(LBP_TPMs) <- LBP_geneInfo$ensembl_gene_id[match(rownames(LBP_TPMs),
-                                                         LBP_geneInfo$ensembl_gene_id_version_orig)]
-
-any(duplicated(RNAseqHarm_geneInfo$ensembl_gene_id[match(colnames(RNAseqHarm_TPMs),
-                                                         RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)]))
-
-colnames(RNAseqHarm_TPMs) <- RNAseqHarm_geneInfo$ensembl_gene_id[match(colnames(RNAseqHarm_TPMs),
-                                                                       RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)]
-
-
-commonGenes <- intersect(colnames(RNAseqHarm_TPMs),
-                         intersect(rownames(GTEx_TPMs),
-                                   rownames(LBP_TPMs)))
-
-
-combinedTPMs <- rbind.data.frame(t(LBP_TPMs[commonGenes, ]),
-                                 t(GTEx_TPMs[commonGenes, ]),
-                                 RNAseqHarm_TPMs[, commonGenes])
-
-write.csv(combinedTPMs, file = paste0(outDir, "combined_preMergeTPMs.csv"))
-
-# Now merge counts DFs and compute TPMsnwith all the samples together
+# Merge counts DFs
+################################################################################
 
 LBP_counts <- LBP_counts[rownames(LBP_counts) %in% LBP_geneInfo$ensembl_gene_id_version_orig, ]
 
@@ -215,7 +183,6 @@ rownames(LBP_counts) <- LBP_geneInfo$ensembl_gene_id[match(rownames(LBP_counts),
 
 # Remove the samples that are not in the cleaned-up metadata
 LBP_counts <- LBP_counts[, make.names(colnames(LBP_counts)) %in% LBP_metDat$specimenID]
-
 
 rownames(GTEx_counts) <- GTEx_counts$Name
 
@@ -234,36 +201,24 @@ RNAseqHarm_counts <- RNAseqHarm_counts[rownames(RNAseqHarm_counts) %in% RNAseqHa
 
 any(duplicated(RNAseqHarm_geneInfo$ensembl_gene_id[match(rownames(RNAseqHarm_counts), RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)]))
 
-rownames(RNAseqHarm_counts) <- RNAseqHarm_geneInfo$ensembl_gene_id[match(rownames(RNAseqHarm_counts), RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)]
+rownames(RNAseqHarm_counts) <- RNAseqHarm_geneInfo$ensembl_gene_id[match(rownames(RNAseqHarm_counts),
+                                                                         RNAseqHarm_geneInfo$ensembl_gene_id_version_orig)]
 
+commonGenes <- intersect(rownames(RNAseqHarm_counts),
+                         intersect(rownames(GTEx_counts),
+                                   rownames(LBP_counts)))
 
 combinedCounts <- rbind.data.frame(t(LBP_counts[commonGenes, ]), 
                                    t(GTEx_counts[commonGenes, ]),
                                    t(RNAseqHarm_counts[commonGenes, ]))
 
-
 # Remove the genes that have zero counts across all the samples
 combinedCounts <- combinedCounts[, colSums(combinedCounts) != 0]
-write.csv(combinedCounts, file = paste0(outDir, "combined_counts.csv"))
+# Save merged counts file
+write_table_fast(combinedCounts, f = paste0(outDir, "combined_counts.csv"))
 
-# Obtain gene info dataframe with bioMart
-human <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
-
-# This is an alternative server for moments where the main might not work
-human <- useEnsembl(biomart = "genes", dataset="hsapiens_gene_ensembl", mirror = "asia")
-
-
-geneInfo_combined <- getENSEMBL_ID_info(colnames(combinedCounts),
-                                        mart = human, filt = "ensembl_gene_id")
-
-combinedTPMsPostMerge <- counts2TPMs(combinedCounts,
-                                     geneInfo = geneInfo_combined,
-                                     IDsIn = "ensembl_gene_id_orig",
-                                     genesInCols = T)
-
-write.csv(combinedTPMsPostMerge, file = paste0(outDir, "combined_postMergeTPMs.csv"))
-
-# Combine all metadata dataframes in a single file
+# Combine metadata dataframes into a single file
+################################################################################
 colnames(RNAseqHarm_metDat) <- gsub("ROSMAP_batch",
                                     "batch_seq",
                                     colnames(RNAseqHarm_metDat))
@@ -326,5 +281,4 @@ combined_metDat$tissue <- tolower(combined_metDat$tissue)
 combined_metDat <- combined_metDat[combined_metDat$assay == "rnaSeq", ]
 
 write.csv(combined_metDat, file = paste0(outDir, "combined_metDat.csv"))
-write.csv(geneInfo_combined, file = paste0(outDir, "combined_geneInfo.csv"))
-
+#write.csv(geneInfo_combined, file = paste0(outDir, "combined_geneInfo.csv"))

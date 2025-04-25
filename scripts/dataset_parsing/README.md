@@ -1,26 +1,36 @@
 # Dataset parsing
 This directory contains the code used for parsing the different datasets into unified metadata and quantile-normalized counts matrices. This step in the pipeline was rather manual: we inspected the metadata provided by each substudy, categorized the samples as controls based on the available variables, and homogenized the units and categories included across the different datasets.
 This manual parsing can be divided in the following steps:
+
 ## 1. Parsing of AMP-AD datasets
 ### 1.1. Parsing of AMP-AD individual metadata
 Here we explored diagnosis variables to determine which individuals are healthy, which suffered from neurodegeneration and which needed to be removed due to having ambiguous or non-existent age information or diagnosis out of the scope of our study. In this step we homogenized information such as ethnicity and sex accross the different metadata datasets. This step is performed by `amp_ad_metadata_parsing.R`. To run, this script needs to have the following files, whose access need to be requested in synapse.org:
 - `LBP_individual_metadata.csv` (syn58589260), obtained from [The Living Brain Project (LBP) metadata directory](https://www.synapse.org/Synapse:syn27127033). This file has to be placed in `./data/metadata/LBP`.
 - `RNAseq_Harmonization_Mayo_combined_metadata.csv` (syn27000373), `RNAseq_Harmonization_MSBB_combined_metadata.csv` (syn27000243) and `RNAseq_Harmonization_ROSMAP_combined_metadata.csv` (syn27034471), obtained from [The RNAseq Harmonization Study (RNAseq Harmonization) metadata directory](https://www.synapse.org/Synapse:syn27000096). These files need to be placed in `./data/metadata/RNAseq_Harmonization`.
 - `MayoRNAseq_individual_metadata.csv` (syn23277389), obtained from [The MayoRNAseq metadata directory](https://www.synapse.org/Synapse:syn23634010). This file needs to be placed in `./data/metadata/rnaSeqReprocessing`. The reason for including this file is that there are several samples that in the RNAseq Harminozation version have the Thal and Braak scores missing but in this version are not, so we included this metadata file to complete them.
+
 The output of this script are a CSV metadata file for each dataset, and a metadata file comining all the selected samples from the RNAseq Harmonization study (`RNAseq_Harmonization_ind_all.csv`), all written to `./results/metadata_parsed/`.
-### 1.2. Homogenizing AMP-AD metadata and counts matrices
-Here the counts files from the RNAseq Harmonization studies are merged together, and the individual, biospecimen and assay metadata of the LBP study are combined into a single file, following the same structure as the metadata of the RNAseq harmonization study. This step is performed by `rnaHarm_parseCounts.R`. To run, it requires the files generated in the previous step, and other files obtained from synapse.org. The whole set of files needed by this script and their required location  is the following:
+
+### 1.2. Homogenizing RNAseq harmonization metadata and counts matrices
+Here the counts files from the RNAseq Harmonization studies are merged together, and the clinical information of ROSMAP study is added to the RNAseq Harmonization comined metadata file. This step is performed by `rnaHarm_parseCounts.R`. To run, it requires the files generated in the previous step, and other files obtained from synapse.org. The whole set of files needed by this script and their required location  is the following:
 - The metadata files generated in the previous step.
+- `ROSMAP_clinical.csv` (syn3191087), obtained from the [ROSMAP study metadata subdirectory](https://www.synapse.org/Synapse:syn3157322).
 - `Mayo_gene_all_counts_matrix_clean.txt` (syn21544635), obtained from [The RNAseq_Harmonization Gene Expression (Raw Gene Counts) Mayo subdirectory](https://www.synapse.org/Synapse:syn20825471). This file needs to be placed in `./data/expression/RNAseqHarm/`.
 - `MSBB_gene_all_counts_matrix_clean.txt` (syn21544666), obtained from [The RNAseq_Harmonization Gene Expression (Raw Gene Counts) MSSM subdirectory](https://www.synapse.org/Synapse:syn20957610). This file needs to be placed in `./data/expression/RNAseqHarm/`.
 - `ROSMAP_batch1_gene_all_counts_matrix_clean.txt` (syn22283382), obtained from [The RNAseq_Harmonization Gene Expression (Raw Gene Counts) Rosmap batch 1 subdirectory](https://www.synapse.org/Synapse:syn22279877). This file needs to be placed in `./data/expression/RNAseqHarm/`.
 - `ROSMAP_batch2_gene_all_counts_matrix_clean.txt` (syn22301601), obtained from [The RNAseq_Harmonization Gene Expression (Raw Gene Counts) Rosmap batch 2 subdirectory](https://www.synapse.org/Synapse:syn22296752). This file needs to be placed in `./data/expression/RNAseqHarm/`.
 - `ROSMAP_batch3_gene_all_counts_matrix_clean.txt` (syn22314230), obtained from [The RNAseq_Harmonization Gene Expression (Raw Gene Counts) Rosmap batch 3 subdirectory](https://www.synapse.org/Synapse:syn22300974). This file needs to be placed in `./data/expression/RNAseqHarm/`.
 - `ROSMAP_batch4_gene_all_counts_matrix_clean.txt` (syn25817661), obtained from [The RNAseq_Harmonization Gene Expression (Raw Gene Counts) Rosmap batch 4 subdirectory](https://www.synapse.org/Synapse:syn25810549). This file needs to be placed in `./data/expression/RNAseqHarm/`.
-- `LBP_FlagshipPaper_featureCounts.csv` (syn64567831), obtained from [LBP Gene Expression (RNAseq) counts subdirecotry](https://www.synapse.org/Synapse:syn52132890). This file needs to be placed in `./data/expression/LBP/`.
-- `LBP_individual_metadata.csv` (syn58589260), `LBP_assay_RNAseq_metadata.csv` (syn64555267) and `LBP_biospecimen_metadata.csv` (syn64504156), obtained from [LBP's Metadata subdirectory](https://www.synapse.org/Synapse:syn27127033).
 
-The output of this script are a counts matrix of all the RNAseq_Harmonization study datasets (`RNAseqHarm_allCounts.csv`) and a metadata file of the LBP samples following the same structure of `RNAseq_Harmonization_ind_all.csv` (`LBP_metadata_unified.csv`), which are saved in `./results/parsed/`.
+The output of this script are a counts matrix of all the RNAseq_Harmonization study datasets (`RNAseqHarm_allCounts.csv`) and a metadata file including clinical variables (), which are saved in `./results/parsed/`.
+
+### 1.3. Homogenizing LBP metadata.
+Here, the individual, biospecimen and assay metadata of the LBP study are combined into a single file, following the same structure as the metadata of the RNAseq harmonization study. This step is performed by `parse_LBP_metdat.R`. The files required by this script are:
+- `LBP_ind_all.csv`, which should have been generated by `amp_ad_metadata_parsing.R` in step 1.1, and placed into `./results/metadata_parsed/`.
+- `LBP_individual_metadata.csv` (syn58589260), `LBP_assay_RNAseq_metadata.csv` (syn64555267) and `LBP_biospecimen_metadata.csv` (syn64504156), obtained from [LBP's Metadata subdirectory](https://www.synapse.org/Synapse:syn27127033). These files need to be placed into `./data/metadata/LBP/`.
+
+The output of this script is a metadata file of the LBP samples following the same structure of `RNAseq_Harmonization_ind_all.csv` (`LBP_metadata_unified.csv`), which is saved in `./results/parsed/`.
+
 ## 2. Parsing of GTEx datasets.
 Here, the counts files originated from brain tissues belonging to GTEx were merged into a single file, the metadata files were explored to select the samples that fit the requirements of our study (having an unambiguous age and not having suffered psychiatric or drug abuse disorders), and to divide the samples in healthy controls or affected by neurodegeneration, and homogenized the file structure to resemble that of `RNAseq_Harmonization_ind_all.csv`. This step is performed by `GTEx_parsing.R`. The required files for this step are:
 - GTEx brain bulk counts files. These files are open access, and can be obtained from [The GTEx portal bulk tissue expression section](https://www.gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression). These files need to be placed in `./data/gtex/counts/`. In particular, the files we used were:
@@ -38,6 +48,7 @@ Here, the counts files originated from brain tissues belonging to GTEx were merg
     - `gene_reads_2017-06-05_v8_brain_spinal_cord_cervical_c-1.gct.gz`
     - `gene_reads_2017-06-05_v8_brain_substantia_nigra.gct.gz`
 - The GTEx metadata files `GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt` and `GTEx_Analysis_2017-06-05_v8_Annotations_SubjectPhenotypesDS.txt`, available upon request at dbGaP (protected data access information can be found [here](https://www.gtexportal.org/home/protectedDataAccess)). These files need to be placed in `./data/gtex/`.
+
 The output of this script are a counts matrix integrating all the selected GTEx datasets (`GTEx_allCounts.csv`), and the corresponding metadata file (`GTEx_metadata_unified.csv`). Both files will be written at `./results/parsed/`.
 ## 3. Merge GTEx, LBP and RNAseq Harmonization datasets
 Here, the parsed counts and metadata matrices coming from GTEx, LBP and RNAseq Harmonization that were generated in the previous steps were merged. This step is performed by `merge_GTEx_LBP_rnaSeqHarm.R`. The files required for this step are the following:
@@ -47,6 +58,13 @@ Here, the parsed counts and metadata matrices coming from GTEx, LBP and RNAseq H
 - RNAseq Harmonization metadata file `RNAseq_Harmonization_ind_all_ROSMAPBtch.csv`, which should have been created by `rnaHarm_parseCounts.R` and placed in `./results/metadata_parsed/` in step 1.2.
 - GTEx counts matrix file `GTEx_allCounts.csv` and its corresponding metadata file `GTEx_metadata_unified.csv`, which should have been previously generated by `GTEx_parsing.R` and placed in `./results/parsed/` in step 2.
 
-The output of this script 
+The output of this script are combined counts and metadata matrices: `combined_counts.csv` and `combined_metDat.csv`, respecively. Both files are saved in `./results/parsed/`.
+## 4. Obtention of TBI data and merge with the combined dataset
+Here, the data from [the Aging, Dementia and TBI study](https://aging.brain-map.org) was downloaded, merged into a single counts matrix (keeping only samples that didn't suffered a TBI, and have non-ambiguous ages), and with the `combined_counts.csv` matrix previously generated in step 3. Metadata is processed the same way. This step is performed bu `tbi_get.R`. The files required by this step are the following:
+- `tbi_data_files.csv`, which is freely available [here](https://aging.brain-map.org/data/tbi_data_files.csv). This file needs to be placed in `./data/dataset_parsing/`.
+- `DonorInformation.csv`, which is freely available [here](https://aging.brain-map.org/api/v2/data/query.csv?criteria=model::ApiTbiDonorDetail,rma::options[num_rows$eqall]). This file needs to be placed in `./data/dataset_parsing/`.
+- `combined_counts.csv` and `combined_metDat.csv`, which should have been previously generated by `merge_GTEx_LBP_rnaSeqHarm.R` in `./results/parsed/`.
+
+The output of this script are `TBI_metadata_unified.csv`, `combined_metDat_wTBI.csv` and `combined_counts_wTBI.csv`, which are saved into `./results/parsed/`.
 
 
