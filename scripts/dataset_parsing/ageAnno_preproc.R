@@ -57,6 +57,7 @@ if (!require("devtools",quietly = T)){
 if(!require("plotUtils", quietly = T)){
         devtools::install_github('guisantagui/plotUtils', upgrade = "never")
 }
+library(plotUtils)
 library(tidyr)
 
 # Functions

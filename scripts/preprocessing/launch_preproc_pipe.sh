@@ -27,16 +27,16 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-
-input="../../data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
-metDat="../../data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
+input="../../results/preproc/merged_counts_log2_quantNorm.csv"
+"/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
+metDat="../../results/parsed/merged/merged_metdat.csv"
 filtDF="none" # "none" for not filtering
 nPCs=20
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
 excludeSubstudy="none" # "none" for not excluding any substudy before the preprocessing
 nSV_method="leek"
-outDir="../../results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain/"
+outDir="../../results/preproc/test_no_lincs/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then

@@ -96,6 +96,9 @@ merged_metdat <- rbind.data.frame(comb_metdat,
 # Round ageDeath, as brainSeq has decimals
 merged_metdat$ageDeath <- round(merged_metdat$ageDeath)
 
+# Filter counts to keep only what is available in the metadata
+merged_counts <- merged_counts[make.names(rownames(merged_counts)) %in% make.names(merged_metdat$specimenID), ]
+
 # Write the files
 ################################################################################
 
