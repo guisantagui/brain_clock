@@ -185,6 +185,18 @@ findNumPCs <- function(seur){
         return(min(co1,co2))
 }
 
+sum_dups <- function(m){
+        dup_genes <- rownames(m)[duplicated(rownames(m))]
+        for(i in seq_along(dup_genes)){
+                dg <- dup_genes[i]
+                nu_vec <- colSums(m[rownames(m) == dg, ])
+                matches <- which(rownames(m) == dg)
+                m[matches[1], ] <- nu_vec
+                m <- m[-matches[-1], ]
+        }
+        return(m)
+}
+
 # User parameters
 ################################################################################
 setwd("../..")
@@ -649,6 +661,9 @@ nu_names <- ensemblIDs$ensembl_gene_id[match(make.names(rownames(pseudobulk)),
 pseudobulk <- pseudobulk[!is.na(nu_names), ]
 nu_names <- nu_names[!is.na(nu_names)]
 rownames(pseudobulk) <- nu_names
+
+# Add up duplicates that might happen when changing IDs
+pseudobulk <- sum_dups(pseudobulk)
 
 write_table_fast(pseudobulk, f = sprintf("%sageanno_brain_pb_counts.csv", out_dir))
 
