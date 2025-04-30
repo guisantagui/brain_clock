@@ -70,7 +70,7 @@ The output of this script are `TBI_metadata_unified.csv`, `combined_metDat_wTBI.
 ## 5. Obtention of BrainSeq Phase 2 data
 Here, data from [BrainSeq Phase 2 study](https://pmc.ncbi.nlm.nih.gov/articles/PMC7000204/#S10) was parsed into counts and metadata matrices, following the same format of the rest of the files and including only control individuals without ambiguous ages and of 20 years old or older. This step is performed by `brainSeq_pII_parsing.R`. The only file required by this script is `rse_gene_unfiltered.Rdata`, which can be freely accessed [here](https://s3.us-east-2.amazonaws.com/libd-brainseq2/rse_gene_unfiltered.Rdata) and needs to be placed in `./data/brainSeq_pII/`. The outputs of this script are `brainseq_pII_counts.csv` and `brainseq_pII_metadata.csv`, the two of them written into `./results/parsed/`.
 
-# 5. Pre-processing, integration and annotation of AgeAnno brain scRNA-seq data
+## 6. Pre-processing, integration and annotation of AgeAnno brain scRNA-seq data
 Here, the brain scRNA-seq Seurat object from [AgeAnno](https://relab.xidian.edu.cn/AgeAnno/#/) was pre-processed to remove low quality samples and cells, the different samples were integrated and the cell types annotated, and a matrix of pseudo-bulk counts per cell type within each sample was generated. This step is performed by `ageAnno_preproc.R`. The files required by this script are the following:
 - `brain.rds`, which is the Seurat Object of AgeAnno's brain samples and can be downloaded [here](https://drive.google.com/drive/folders/160i9KmFJ0tEYP2QBT5IjbJqhqvuu5rBW). This file needs to be placed in `./data/ageAnno/`
 - `age_info.csv`, which is the age of death of each one of the donors from AgeAnno samples. This file is already included in data/`ageAnno`.
@@ -80,3 +80,8 @@ Here, the brain scRNA-seq Seurat object from [AgeAnno](https://relab.xidian.edu.
 The outputs of this script are be written in `./results/parsed/ageAnno/`, and consist in several plots of the pre-processing steps, seurat objects for each sample and for the integrated objects, plots of the annotation process and the two files that will be used in downstream analyses, which are:
 - `ageanno_brain_pb_counts.csv`: the pseudo-bulk counts of each cell type per sample.
 - `ageanno_brain_pb_metdat.csv`: the parsed metadata matching pseudo-bulk rows.
+
+## 7. Parsing perturbation data
+### 7.1 Parsing the compilation of perturbations
+Here, the datasets we compiled from several sources, which are indicated in the Supplementary Table 5 of our manuscript.
+### 7.2 Parsing LINCS L1000 data

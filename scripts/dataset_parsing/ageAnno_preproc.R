@@ -50,10 +50,13 @@ if(!require("SeuratWrappers", quietly = T)){
         devtools::install_github('satijalab/seurat-wrappers', upgrade = "never")
 }
 library(SeuratWrappers)
+if (!require("devtools",quietly = T)){
+    install.packages("devtools",
+                     repos = 'http://cran.us.r-project.org')
+}
 if(!require("plotUtils", quietly = T)){
         devtools::install_github('guisantagui/plotUtils', upgrade = "never")
 }
-library(plotUtils)
 library(tidyr)
 
 # Functions
@@ -659,7 +662,8 @@ meta_parsed <- data.frame(specimenID = colnames(pseudobulk),
                           organ = "brain",
                           tissue = gsub("\\_.*", "", colnames(pseudobulk)),
                           assay = "scRNAseq",
-                          substudy = "ageAnno")
+                          substudy = "ageAnno",
+                          diagn_4BrainClck = "scRNAseq")
 meta_parsed$ageDeath <- age_info$age_death[match(meta_parsed$individualID,
                                                  age_info$orig.ident)]
 write_table_fast(meta_parsed,
