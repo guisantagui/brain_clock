@@ -45,25 +45,25 @@ parser <- arg_parser("Train the GLM on transformed age and assess performance.")
 parser <- add_argument(parser = parser,
                        arg = c("input",
                                "--metDat",
-                               #"--respVar",
-                               #"--ageTransPars",
                                "--alpha",
                                "--mem",
                                "--preFiltGenes",
                                "--lambda",
                                "--braakThrshld",
+                               "--refit",
+                               "--overwrite_mod",
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features columns, samples rows. CSV.",
                                 "Metadata file (including ages).",
-                                #"What response variable should be used to fit the model (age_chron or age_trans)",
-                                #"RDS file with Gompertz-Makeham parameters for transformation.",
                                 "Alpha value for the elastic net.",
                                 "Memory to allocate to h2o instance.",
                                 "CSV file with genes to be prefiltered previous to the fitting. Has to have a column called 'ensembl_gene_id'. If set to 'none' all the genes will be used",
                                 "If set, lambda search will be done. Otherwise it will be set to zero and no regularization will be done.",
                                 "Braak score threshold for considering samples neurodegenerated.",
+                                "If, even when a model is available in the output path, it should be refit",
+                                "Force overwrite",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F, F, F, F, F, T, F, F))
+                       flag = c(F, F, F, F, F, T, F, T, T, F))
 
 parsed <- parse_args(parser)
 
@@ -74,20 +74,22 @@ dataFile <- "../../results/preproc/test_no_lincs/merged_counts_log2_quantNorm_no
 metDatFile <- "../../results/parsed/merged/merged_metdat.csv"
 alph <- 1
 mem <- "24G"
-preFiltGenes="none"
+preFiltGenes <- "none"
 braakThrshld <- 4
 outDir <- "../../results/models/first_round/"
 lambdaFlag <- T
+refit <- F
+overwrite_mod <- T
 
 dataFile <- parsed$input
 metDatFile <- parsed$metDat
-#respVar <- parsed$respVar
-#ageTransParFile <- parsed$ageTransPars
 alph <- as.numeric(parsed$alpha)
 mem <- parsed$mem
 preFiltGenes <- parsed$preFiltGenes
 lambdaFlag <- parsed$lambda
 braakThrshld <- as.numeric(parsed$braakThrshld)
+refit <- parsed$refit
+overwrite_mod <- parsed$overwrite_mod
 outDir <- parsed$outDir
 
 create_dir_if_not(outDir)
@@ -95,29 +97,6 @@ create_dir_if_not(outDir)
 respVar <- "age_chron"
 # Functions
 ################################################################################
-
-# Functions for doing age transformation
-#test <- function(x){
-#        exp(-vals[3]*x-(vals[1]/vals[2])*(exp(vals[2]*x)-1))
-#}
-
-#inverse = function (f, lower = 0, upper = 110) {
-#        function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)[1]
-#}
-#agetrans_inverse = function(lower,upper) inverse(test, lower, upper)
-
-# Clips transformed ages to be in a range that can be backtransformed to
-# chronological ages, transforms back to chronological age and returns the 
-# result.
-#back2Age <- function(transAge){
-#        transAge[transAge > 1] <- 1
-#        transAge[transAge < 0] <- .000012
-#        transAge2Age <- sapply(transAge,
-#                               function(x) agetrans_inverse(0, 110)(x))
-#        transAge2Age <- unlist(transAge2Age)
-#        names(transAge2Age) <- gsub(".root", "", names(transAge2Age))
-#        return(transAge2Age)
-#}
 
 # Predict the age given the expression matrix and the model
 predictAge <- function(model,
@@ -150,8 +129,13 @@ getMetrics <- function(vals, pred){
         rmse <- sqrt(mse)
         mape <- (sum(abs((vals - pred)/vals))/length(vals))*100
         r2 <- 1 - sum((vals - pred)^2)/sum((vals - mean(vals))^2)
-        out <- data.frame(metric = c("mae", "mse", "rmse", "mape", "r2"),
-                          value = c(mae, mse, rmse, mape, r2))
+        pearson2 <- cor(vals, pred)^2
+        bias_mean <- mean(pred - vals)
+        bias_median <- median(pred - vals)
+        out <- data.frame(metric = c("mae", "mse", "rmse", "mape", "r2",
+                                     "pearson2", "bias_mean", "bias_median"),
+                          value = c(mae, mse, rmse, mape, r2,
+                                    pearson2, bias_mean, bias_median))
         return(out)
 }
 
@@ -344,12 +328,6 @@ if (preFiltGenes != "none"){
         dat <- dat[, colnames(dat) %in% keepGenes]
 }
 
-# Load Gompertz-Makeham parameters
-#if(respVar == "age_trans"){
-#        vals <- readRDS(ageTransParFile)
-#        vals <- round(vals,6) #Makes the parameters more readable with little loss of accuracy
-#}
-
 # Data training/testing partition
 ################################################################################
 
@@ -373,10 +351,6 @@ names(ageVec) <- rownames(dat_ctrls)
 ageVecExtn <- metDat$ageDeath[match(rownames(dat_extrn),
                                     make.names(metDat$specimenID))]
 names(ageVecExtn) <- rownames(dat_extrn)
-
-#if(respVar == "age_trans"){
-#        ageVecTrans <- test(ageVec)
-#}
 
 # Split controls in training and testing and create the training DF,
 # including the transformed ages
@@ -415,19 +389,11 @@ write.csv(extnSet_metDat, file = sprintf("%smetDat_extnSet.csv", outDir))
 dat_ctrls_train <- dat_ctrls[make.names(inTrain), ]
 dat_ctrls_test <- dat_ctrls[!rownames(dat_ctrls) %in% make.names(inTrain), ]
 
-
-#if(respVar == "age_trans"){
-#        ageTransTrain <- ageVecTrans[match(rownames(dat_ctrls_train),
-#                                           names(ageVecTrans))]
-#        
-#        train4Mod <- cbind.data.frame(ageTransTrain, dat_ctrls_train)
-#}
-#else if (respVar == "age_chron"){
-        ageChronTrain <- ageVec[match(rownames(dat_ctrls_train),
-                                      names(ageVec))]
+ageChronTrain <- ageVec[match(rownames(dat_ctrls_train),
+                              names(ageVec))]
         
-        train4Mod <- cbind.data.frame(ageChronTrain, dat_ctrls_train)
-#}
+train4Mod <- cbind.data.frame(ageChronTrain, dat_ctrls_train)
+
 
 colnames(train4Mod)[1] <- respVar
 
@@ -446,7 +412,13 @@ if(lambdaFlag){
         lambda_search <- F
 }
 
-model <- h2o.glm(y = respVar,
+model_dir <- sprintf("%smod_alpha%s", outDir, alph)
+model_files <- list.files(model_dir)
+
+if (length(model_files) == 0 | refit){
+        # Train if model doesn't exist or if refit is selected to TRUE
+        print("Training the model...")
+        model <- h2o.glm(y = respVar,
                  training_frame = trainData_h2o,
                  nfolds = 10,
                  fold_assignment = "Random",
@@ -459,9 +431,16 @@ model <- h2o.glm(y = respVar,
                  seed = 100,
                  max_active_predictors = ncol(trainData_h2o),
                  solver = "IRLSM")
-
-h2o.saveModel(model, path = sprintf("%smod_alpha%s", outDir, alph), force = T)
-#saveRDS(model, file = sprintf("%smodFuncsAlpha%s.rds", outDir, alph))
+        h2o.saveModel(model, path = sprintf("%smod_alpha%s", outDir, alph),
+                      force = overwrite_mod)
+}else{
+        # If model exists and refit == FALSE, load latest model in the directory
+        model_file <- sprintf("%s/%s",
+                              model_dir,
+                              model_files[length(model_files)])
+        print(sprintf("Loading %s from %s...", basename(model_file), dirname(model_file)))
+        model <- h2o.loadModel(model_file)
+}
 
 # Model evaluation in test dataset
 ################################################################################
@@ -470,6 +449,10 @@ h2o.saveModel(model, path = sprintf("%smod_alpha%s", outDir, alph), force = T)
 cv_r2 <- unlist(as.vector(model@model$cross_validation_metrics_summary["r2", -c(1, 2)]))
 cv_mae <- unlist(as.vector(model@model$cross_validation_metrics_summary["mae", -c(1, 2)]))
 cv_rmse <- unlist(as.vector(model@model$cross_validation_metrics_summary["rmse", -c(1, 2)]))
+
+# Obtain CV pearson2
+#cv_preds <- h2o.cross_validation_predictions(model)
+#actuals <- h2o.get_frame("your_training_frame_name")[["response_column_name"]]
 
 plotDF <- data.frame(metric = c(rep("r2", length(cv_r2)),
                                 rep("mae", length(cv_mae)),
@@ -532,40 +515,57 @@ predicted_extn <- predictAge(model, t(dat_extrn))
 #}else if(respVar == "age_chron"){
 
 # 1:3 leave out test dataset
-        testAges <- ageVec[match(names(predicted), names(ageVec))]
-        metrics_chronAge <- getMetrics(testAges, predicted)
-        print("Metrics for 1:3 leave out test dataset on chronological ages:")
-        print(metrics_chronAge)
-        write.csv(metrics_chronAge,
-                  file = sprintf("%smetricsTest_chronAge_alpha%s.csv", outDir, alph))
+testAges <- ageVec[match(names(predicted), names(ageVec))]
+metrics_chronAge <- getMetrics(testAges, predicted)
+print("Metrics for 1:3 leave out test dataset on chronological ages:")
+print(metrics_chronAge)
+write.csv(metrics_chronAge,
+          file = sprintf("%smetricsTest_chronAge_alpha%s.csv",
+                         outDir, alph))
 
+# Obtain the residuals to check heteroskedasticity
 test_data_preds <- data.frame(specimenID = names(testAges),
                               real_age = testAges,
                               pred_age = predicted)
-tst_predage_plt <- ggplot(test_data_preds, mapping = aes(x = real_age, y = pred_age)) + geom_point()
+test_realvspred_lm <- lm(formula = pred_age ~ real_age, data = test_data_preds)
+test_data_preds$residuals <- residuals(test_realvspred_lm)
+test_resid_plt <- ggplot(test_data_preds,
+                         mapping = aes(x = real_age, y = residuals)) +
+        geom_point()
+ggsave(filename = sprintf("%stest_realvspred_resids.pdf", outDir),
+       plot = test_resid_plt)
+# Plot real age vs predicted age to see the relationship
+tst_predage_plt <- ggplot(test_data_preds, mapping = aes(x = real_age, y = pred_age)) +
+        geom_point() +
+        geom_smooth(method='lm') +
+        stat_regline_equation()
 ggsave(filename = sprintf("%stest_dat_predvsreal.pdf", outDir), plot = tst_predage_plt)
 
-# External test dataset
-        metrics_chronAgeExtn <- getMetrics(ageVecExtn, predicted_extn)
-        print("Metrics for the external test dataset on chronological ages:")
-        print(metrics_chronAgeExtn)
-        write.csv(metrics_chronAgeExtn,
-                  file = sprintf("%smetricsExtn_chronAge_alpha%s.csv", outDir, alph))
 
+
+# External test dataset
+metrics_chronAgeExtn <- getMetrics(ageVecExtn, predicted_extn)
+print("Metrics for the external test dataset on chronological ages:")
+print(metrics_chronAgeExtn)
+write.csv(metrics_chronAgeExtn,
+          file = sprintf("%smetricsExtn_chronAge_alpha%s.csv",
+                         outDir, alph))
+
+# Obtain the residuals to check heteroskedasticity
 extn_data_preds <- data.frame(specimenID = names(ageVecExtn),
                               real_age = ageVecExtn,
                               pred_age = predicted_extn)
-ext_predage_plt <- ggplot(extn_data_preds, mapping = aes(x = real_age, y = pred_age)) + geom_point()
+extn_realvspred_lm <- lm(formula = pred_age ~ real_age, data = extn_data_preds)
+extn_data_preds$residuals <- residuals(extn_realvspred_lm)
+extn_resid_plt <- ggplot(extn_data_preds, mapping = aes(x = real_age, y = residuals)) + geom_point()
+ggsave(filename = sprintf("%sextn_realvspred_resids.pdf", outDir),
+       plot = extn_resid_plt)
+# Plot real age vs predicted age to see the relationship
+ext_predage_plt <- ggplot(extn_data_preds, mapping = aes(x = real_age, y = pred_age)) +
+        geom_point() +
+        geom_smooth(method='lm') +
+        stat_regline_equation()
 ggsave(filename = sprintf("%sext_dat_predvsreal.pdf", outDir), plot = ext_predage_plt)
-# Calculate bias, to confirm there is an ofset
-mean(test_data_preds$pred_age - test_data_preds$real_age)
-median(test_data_preds$pred_age - test_data_preds$real_age)
-
-# External
-mean(extn_data_preds$pred_age - extn_data_preds$real_age)
-median(extn_data_preds$pred_age - extn_data_preds$real_age)
-
-
 
         # Plot R2 of training, CV and testing
         dfr2 <- data.frame(r2_type = factor(c("r2_training",

@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=modTrainAllLINCS
+#SBATCH --job-name=fitModel_first_round
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
@@ -10,9 +10,9 @@
 #SBATCH -c 8
 #SBATCH --time=00-00:30:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/model_training/output_model_training_allLINCS_chronAge.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/model_training/output_model_training_first_round.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/model_training/error_model_training_allLINCS_chronAge.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/model_training/error_model_training_first_round.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p batch
 #SBATCH --qos=normal
@@ -33,7 +33,18 @@ outDir="../../results/models/first_round/"
 
 # Train the model
 ########################################################################################################################
-Rscript mod_train_and_test.R $data --metDat $metDat --respVar $respVar --ageTransPars $ageTransPars --alpha $alpha --mem $mem --preFiltGenes $preFiltGenes --lambda --braakThrshld $braakThrshld --outDir $outDir
+Rscript mod_train_and_test.R $data
+    --metDat $metDat \
+    --respVar $respVar \
+    --ageTransPars $ageTransPars \
+    --alpha $alpha \
+    --mem $mem \
+    --preFiltGenes $preFiltGenes \
+    --lambda \
+    --braakThrshld $braakThrshld \
+    --refit \
+    --overwrite_mod \
+    --outDir $outDir
 
 modFile="${outDir}modFuncsAlpha${alpha}.rds"
 
