@@ -567,7 +567,14 @@ for(i in seq_along(clusts)){
 saveRDS(unsupMarkers, file = sprintf("%smarkers_res0.2.rds",
                                      out_dir))
 
-aa_marker$`Marker gene`
+# Add EPAS1 to the endothelial markers, to double check,
+# as VTN is not expressed in cluster 14.
+to_bind <- data.frame(Tissue = "Brain",
+                      Cell.type = "Endothelial",
+                      Marker.gene = "EPAS1")
+
+aa_marker <- rbind.data.frame(to_bind,
+                              aa_marker)
 
 marker_dotplot <- DotPlot(object = brain_merged,
                           features = aa_marker$Marker.gene,

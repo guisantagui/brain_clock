@@ -59,10 +59,12 @@ bs_counts <- t(bs_counts)
 aa_counts <- t(aa_counts)
 pert_counts <- t(pert_counts)
 
-merged_counts <- rbind.data.frame(comb_counts[, common_genes],
-                                  bs_counts[, common_genes],
-                                  aa_counts[, common_genes],
-                                  pert_counts[, common_genes])
+merged_counts <- rbind.data.frame(
+        comb_counts[, common_genes],
+        bs_counts[, common_genes],
+        aa_counts[, common_genes]#,
+        #pert_counts[, common_genes]
+)
 
 # Merge metadata
 ################################################################################
@@ -88,10 +90,14 @@ pert_metdat <- cbind.data.frame(pert_metdat,
                                                   dimnames = list(rownames(pert_metdat),
                                                                            cols2Add_pert))))
 
-merged_metdat <- rbind.data.frame(comb_metdat,
-                                  bs_metdat[, colnames(comb_metdat)],
-                                  aa_metdat[, colnames(comb_metdat)],
-                                  pert_metdat[, colnames(comb_metdat)])
+pert_metdat$sex <- "undefined"
+
+merged_metdat <- rbind.data.frame(
+        comb_metdat,
+        bs_metdat[, colnames(comb_metdat)],
+        aa_metdat[, colnames(comb_metdat)]#,
+        #pert_metdat[, colnames(comb_metdat)]
+)
 
 # Round ageDeath, as brainSeq has decimals
 merged_metdat$ageDeath <- round(merged_metdat$ageDeath)

@@ -5,18 +5,32 @@
 # be the input of the processing pipeline (sva etc).                           #
 ################################################################################
 
+if (!require("devtools",quietly = T)){
+    install.packages("devtools",
+                     repos = 'http://cran.us.r-project.org')
+}
+if(!require("plotUtils", quietly = T)){
+        devtools::install_github('guisantagui/plotUtils', upgrade = "never")
+}
+library(plotUtils)
+
+# Files
+################################################################################
+
 lincsFile_NPC <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/lincs_NPC_concat_expMat.csv"
 lincsFile_NEU <- "/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/lincs_NEU_concat_expMat.csv"
 lincsFile_MIC <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA-PSEN1/parsed_mats/lincs_MICROGLIA-PSEN1_concat_expMat.csv"
 
-integFile <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc.csv"
+integFile <- "/home/users/gsantamaria/projects/brain_clock/results/preproc/merged_counts_log2_quantNorm.csv"
 
-metDatInteg <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC.csv"
+metDatInteg <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
 metDatLincs_NPC <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/lincs_NPC_concat_metDat.csv"
 metDatLincs_NEU <- "/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/lincs_NEU_concat_metDat.csv"
 metDatLincs_MIC <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA-PSEN1/parsed_mats/lincs_MICROGLIA-PSEN1_concat_metDat.csv"
 
-outDir <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/"
+outDir <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged_wLINCS/"
+create_dir_if_not(outDir)
+
 outName <- gsub(".csv", "", basename(integFile))
 outPath <- sprintf("%s%s_wLINCS_wLINCS_NPC_NEU_MIC.csv", outDir, outName)
 

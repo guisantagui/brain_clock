@@ -66,10 +66,10 @@ pheno <- data.frame(specimenID = rownames(input),
                                                       make.names(metDat$specimenID))],
                     pmi = metDat$pmi[match(rownames(input),
                                            make.names(metDat$specimenID))],
-                    sex = metDat$sex[match(rownames(input),
-                                           make.names(metDat$specimenID))],
-                    substudy = metDat$substudy[match(rownames(input),
-                                                     make.names(metDat$specimenID))])
+                    sex = factor(metDat$sex[match(rownames(input),
+                                                  make.names(metDat$specimenID))]),
+                    substudy = factor(metDat$substudy[match(rownames(input),
+                                                            make.names(metDat$specimenID))]))
 
 # Obtain vector of sampled specimenIDs for subsampling. If proportion is not 
 # specified all samples will be used
@@ -93,6 +93,10 @@ if(subSampSVAmods < 1){
 # Substutute NAs in PMI for the median value
 pheno$pmi[is.na(pheno$pmi)] <- median(pheno$pmi[!is.na(pheno$pmi)])
 
+# Substutute NAs in ageDeath for the median value (they are the perts_111,
+# so they dont actually have an age).
+pheno$age_death[is.na(pheno$age_death)] <- median(pheno$age_death[!is.na(pheno$age_death)])
+
 # Create design matrixes for SVA accounting only for ages
 mod_onlyAge = model.matrix(~age_death, data=pheno[match(sampledIDsAll,
                                                         pheno$specimenID), ])
@@ -112,7 +116,7 @@ saveRDS(mod0_onlyAge, file = sprintf("%s%s_svaMod0_onlyAge.rds",
 
 # Create design matrixes for SVA accounting for ages and adjustment variables
 # covariates (pmi, sex and substudy)
-mod = model.matrix(~., data=pheno[match(sampledIDsAll,
+mod = model.matrix(~ age_death + pmi + sex + substudy, data=pheno[match(sampledIDsAll,
                                         pheno$specimenID),
                                   !colnames(pheno) %in% c("specimenID",
                                                           "batch_seq")])

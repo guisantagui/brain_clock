@@ -127,9 +127,56 @@ counts <- t(counts)
 # Transform
 counts_log2 <- log2(counts + 1)
 
+
+quant_norm <- function(m, axis = 2, train_means = NULL) {
+    m_class <- class(m)[1]
+    if ((!m_class %in% c("data.frame", "matrix")) | any(dim(m) == 0)){
+        stop("Invalid input object.", call. = FALSE)
+    }
+    if (!axis %in% c(1, 2)){
+        stop("Invalid axis.", call. = FALSE)
+    }
+    if (axis == 1) {
+        m <- t(m)
+    }
+
+    # Sort the matrix
+    m_sort <- apply(m, 2, sort)
+
+    # Calculate row means
+    if (!is.null(train_means)) {
+        means <- train_means
+    } else {
+        means <- rowMeans(m_sort)
+    }
+
+    # Normalize
+    m_norm <- matrix(0, nrow = nrow(m), ncol = ncol(m))
+    for (i in 1:ncol(m)) {
+        m_norm[, i] <- means[rank(m[, i], ties.method = "average")]
+    }
+
+    if (axis == 1) {
+        m_norm <- t(m_norm)
+    }
+
+    dimnames(m_norm) <- dimnames(m)
+    if (m_class == "data.frame") {
+        m_norm <- as.data.frame(m_norm)
+    }
+
+    return(list(norm = m_norm, ref = means))
+}
+
 counts_log2_qNorm <- quant_norm(counts_log2)
+
+means_ref <- counts_log2_qNorm$ref
+counts_log2_qNorm <- counts_log2_qNorm$norm
 
 counts_log2_qNorm <- t(counts_log2_qNorm)
 
 # Save
 write_table_fast(counts_log2_qNorm, outName)
+
+outName_ref <- gsub(".csv", "_refMeans_4norm.rds", outName)
+saveRDS(means_ref, file = outName_ref)
