@@ -10,15 +10,17 @@ if(!require(ggtext, quietly = T)){
         install.packages("ggtext",
                          repos='http://cran.us.r-project.org')
 }
-library(ggtext)
+
 if(!require("ggpubr", quietly = T)){
         install.packages("ggpubr", repos='http://cran.us.r-project.org')
 }
-library(ggpubr)
 if(!require(argparser, quietly = T)){
         install.packages("argparser", repos='http://cran.us.r-project.org')
 }
 library(argparser)
+library(ggplot2)
+library(ggpubr)
+library(ggtext)
 
 # Terminal argument parser
 ################################################################################
@@ -71,20 +73,23 @@ pcBiplot <- function(PC, x="PC1", y="PC2", varPlotFilt = NULL, biPlot = F,
         }
         data <- data.frame(obsnames=row.names(PC$x), PC$x)
         data <- data[, c("obsnames", x, y)]
+        data <- cbind.data.frame(data, metDat[match(rownames(data),
+                                                    make.names(metDat$specimenID)), colnames(metDat) != "specimenID"])
+        #data$tissue <- metDat$tissue[match(rownames(data),
+        #                                   make.names(metDat$specimenID))]
         
-        data$tissue <- metDat$tissue[match(rownames(data),
-                                           make.names(metDat$specimenID))]
-        
-        data$substudy <- metDat$substudy[match(rownames(data),
-                                               make.names(metDat$specimenID))]
-        data$pmi <- metDat$pmi[match(rownames(data),
-                                     make.names(metDat$specimenID))]
-        data$individualID <- metDat$individualID[match(rownames(data),
-                                                       make.names(metDat$specimenID))]
-        data$age_death <- metDat$ageDeath[match(rownames(data),
-                                                make.names(metDat$specimenID))]
-        data$diagnosis <- metDat$diagn_4BrainClck[match(rownames(data),
-                                                  make.names(metDat$specimenID))]
+        #data$substudy <- metDat$substudy[match(rownames(data),
+        #                                       make.names(metDat$specimenID))]
+        #data$pmi <- metDat$pmi[match(rownames(data),
+        #                             make.names(metDat$specimenID))]
+        #data$individualID <- metDat$individualID[match(rownames(data),
+        #                                               make.names(metDat$specimenID))]
+        #data$age_death <- metDat$ageDeath[match(rownames(data),
+        #                                        make.names(metDat$specimenID))]
+        #data$diagnosis <- metDat$diagn_4BrainClck[match(rownames(data),
+        #                                          make.names(metDat$specimenID))]
+        #data$exper_group <- metDat$exper_group[match(rownames(data),
+        #                                       make.names(metDat$specimenID))]
         propVar <- PC$summary[2, c(x, y)]
         propX <- round(propVar[names(propVar) == x]*100, digits = 2)
         propY <- round(propVar[names(propVar) == y]*100, digits = 2)
@@ -195,14 +200,14 @@ bigPCA <- readRDS(bigPCAFile)
 metDat <- read.csv(metDatFile, row.names = 1)
 
 
-# Do the plots and save them
+# Do the PCA plots and save them
 ################################################################################
 pca_substudy <- pcBiplot(bigPCA,
                          x = x,
                          y = y,
                          colBy = "substudy",
                          biPlot = F,
-                         colROSMAPBatch = T,
+                         colROSMAPBatch = F,
                          colLINCSCell = T)
 ggsave(plot = pca_substudy,
        filename = sprintf("%s%s_substudy.pdf",
@@ -225,7 +230,7 @@ ggsave(plot = pca_tissue,
 pca_age_death <- pcBiplot(bigPCA,
                           x = x,
                           y = y,
-                          colBy = "age_death",
+                          colBy = "ageDeath",
                           biPlot = F)
 
 ggsave(plot = pca_age_death,
@@ -248,7 +253,7 @@ ggsave(plot = pca_pmi,
 pca_diagn <- pcBiplot(bigPCA,
                       x = x,
                       y = y,
-                      colBy = "diagnosis",
+                      colBy = "diagn_4BrainClck",
                       biPlot = F)
 
 ggsave(plot = pca_diagn,
@@ -256,7 +261,19 @@ ggsave(plot = pca_diagn,
                           outDir,
                           outName))
 
+pca_exper <- pcBiplot(bigPCA,
+                      x = x,
+                      y = y,
+                      colBy = "exper_group",
+                      biPlot = F)
 
+ggsave(plot = pca_exper,
+       filename = sprintf("%s%s_exper.pdf",
+                          outDir,
+                          outName))
+
+# Do the PCA multi-plots and save them
+################################################################################
 pcaMult_subst <- doPCAMultiPlot(bigPCA,
                                 nComps = 5,
                                 varPlotFilt = NULL,
@@ -286,7 +303,7 @@ pcaMult_age <- doPCAMultiPlot(bigPCA,
                               nComps = 5,
                               varPlotFilt = NULL,
                               biPlot = F,
-                              colBy = "age_death")
+                              colBy = "ageDeath")
 
 ggsave(plot = pcaMult_age,
        filename = sprintf("%s%s_mult_ageDeath.pdf",
@@ -310,9 +327,20 @@ pcaMult_diagn <- doPCAMultiPlot(bigPCA,
                                 nComps = 5,
                                 varPlotFilt = NULL,
                                 biPlot = F,
-                                colBy = "diagnosis")
+                                colBy = "diagn_4BrainClck")
 
 ggsave(plot = pcaMult_diagn,
        filename = sprintf("%s%s_mult_diagn.pdf",
+                          outDir,
+                          outName))
+
+pcaMult_exper <- doPCAMultiPlot(bigPCA,
+                                nComps = 5,
+                                varPlotFilt = NULL,
+                                biPlot = F,
+                                colBy = "exper_group")
+
+ggsave(plot = pcaMult_exper,
+       filename = sprintf("%s%s_mult_exper.pdf",
                           outDir,
                           outName))

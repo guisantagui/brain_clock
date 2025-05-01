@@ -82,13 +82,13 @@ recurs_intersect <- function(lst){
 
 # Directory stuff
 ################################################################################
-counts_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_counts.csv"
-lincsGeneInfo <- "/home/users/gsantamaria/projects/brain_clock/data/perturbation/lincs/lincs_genes_geneInfo.csv"
-metdat_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
+counts_f <- "../../results/parsed/merged/merged_counts.csv"
+lincsGeneInfo <- "../../data/perturbation/lincs/lincs_genes_geneInfo.csv"
+metdat_f <- "../../results/parsed/merged/merged_metdat.csv"
 
 propZeroRem <- .8
 rinFilt <- 6
-outDir <- "/home/users/gsantamaria/projects/brain_clock/results/preproc/"
+outDir <- "../../results/parsed/merged/"
 
 create_dir_if_not(outDir)
 

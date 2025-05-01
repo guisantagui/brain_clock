@@ -8,6 +8,8 @@
 # integrated perturbation metadata to have the same columns as the human one.  #
 ################################################################################
 
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
 if (!require("devtools",quietly = T)){
     install.packages("devtools",
                      repos = 'http://cran.us.r-project.org')
@@ -15,6 +17,11 @@ if (!require("devtools",quietly = T)){
 if(!require("plotUtils", quietly = T)){
         devtools::install_github('guisantagui/plotUtils', upgrade = "never")
 }
+if (!require("preprocessCore", quietly = T)){
+        BiocManager::install("preprocessCore", configure.args=c(preprocessCore = "--disable-threading"),
+                             update = F)
+}
+library(preprocessCore)
 library(plotUtils)
 
 # Files
@@ -31,12 +38,14 @@ metDatLincs_NPC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parse
 metDatLincs_NEU_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/lincs_NEU_concat_metDat.csv"
 metDatLincs_MIC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA-PSEN1/parsed_mats/lincs_MICROGLIA-PSEN1_concat_metDat.csv"
 
+counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/preproc/merged_counts_log2_quantNorm.csv"
 metDat_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
 
 outDir <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged_perts/"
 create_dir_if_not(outDir)
 
 outPath <- sprintf("%smerged_perts_counts.csv", outDir)
+lincsOut <- sprintf("%slincs_counts.csv", outDir)
 
 outPathMetDat <- sprintf("%smerged_perts_metdat.csv", outDir)
 
@@ -50,6 +59,7 @@ lincs_NPC <- data.frame(t(lincs_NPC))
 lincs_NEU <- data.frame(t(lincs_NEU))
 lincs_MIC <- data.frame(t(lincs_MIC))
 perts <- data.frame(t(perts))
+counts_clin <- read_table_fast(counts_clin_f, row.names = 1)
 
 metDat_lincs_NPC <- read_table_fast(metDatLincs_NPC_f, row.names = 1)
 metDat_lincs_NEU <- read_table_fast(metDatLincs_NEU_f, row.names = 1)
@@ -107,8 +117,8 @@ df2AddPerts <- data.frame(matrix(nrow = nrow(metDat_perts),
 metDat_perts <- cbind.data.frame(metDat_perts, df2AddPerts)
 
 # Merge metadata dataframes
-metDat_lincsPert <- rbind.data.frame(metDat_perts[, colnames(metDat_clin)],
-                                     metDat_lincs[, colnames(metDat_clin)])
+metDat_lincsPert <- rbind.data.frame(metDat_perts,
+                                     metDat_lincs)
 
 # Save expression and metadata datasets
 ################################################################################
@@ -117,7 +127,30 @@ print(sprintf("%s saved at %s.",
               basename(outPath),
               dirname(outPath)))
 
+write_table_fast(lincs, f = lincsOut)
+print(sprintf("%s saved at %s.",
+              basename(lincsOut),
+              dirname(lincsOut)))
+
 write_table_fast(metDat_lincsPert, f = outPathMetDat)
 print(sprintf("%s saved at %s.",
               basename(outPathMetDat),
               dirname(outPathMetDat)))
+
+# Quantile-normalized merge dataset, using clinical data as reference
+################################################################################
+
+# Obtain target distribution from clinical data
+Sys.setenv(OMP_NUM_THREADS = "1")
+
+target_dist <- normalize.quantiles.determine.target(as.matrix(counts_clin))
+
+lincsPerts_quantNorm <- normalize.quantiles.use.target(as.matrix(lincsPerts),
+                                                       target_dist)
+# Reassign the dimnames, as normalize.quantiles removes them
+dimnames(lincsPerts_quantNorm) <- dimnames(lincsPerts)
+outPath_quantNorm <- gsub(".csv", "_quantNorm.csv", outPath)
+write_table_fast(lincsPerts_quantNorm, f = outPath_quantNorm)
+print(sprintf("%s saved at %s.",
+              basename(outPath_quantNorm),
+              dirname(outPath_quantNorm)))

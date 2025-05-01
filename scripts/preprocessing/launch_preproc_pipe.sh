@@ -27,8 +27,7 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-input="../../results/preproc/merged_counts_log2_quantNorm.csv"
-"/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
+input="../../results/parsed/merged/merged_counts_log2_quantNorm.csv"
 metDat="../../results/parsed/merged/merged_metdat.csv"
 filtDF="none" # "none" for not filtering
 nPCs=20
@@ -100,20 +99,21 @@ modCombat="${modCombat}_combatMod.rds"
 Rscript combat_exe.R $noCerebFile --batch $batch --combatMod $modCombat --outDir $outDir
 combatAdj=$(echo "$noCerebFile" | sed 's/.csv$//')
 combatAdj="${combatAdj}_combat.csv"
-#Rscript sva_fast_exe.R $combatAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir
-#svaAdj_onlyAge=$(echo "$combatAdj" | sed 's/.csv$//')
-#svaAdj_onlyAge="${svaAdj_onlyAge}_onlyAge_svaAdj.csv"
 
 # These lines are for running only SVA
 Rscript sva_fast_exe.R $noCerebFile --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir
 svaAdj_onlyAge=$(echo "$noCerebFile" | sed 's/.csv$//')
 svaAdj_onlyAge="${svaAdj_onlyAge}_onlyAge_svaAdj.csv"
 
-
+# Run SVA on ComBat-ed data
+Rscript sva_fast_exe.R $combatAdj --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --saveSVrem --outDir $outDir
+cmbt_svaAdj_onlyAge=$(echo "$combatAdj" | sed 's/.csv$//')
+cmbt_svaAdj_onlyAge="${cmbt_svaAdj_onlyAge}_onlyAge_svaAdj.csv"
 
 # Run PCAs of the results
 Rscript bigPCA_exe.R $combatAdj --nPCs $nPCs --stand --outDir $outDir
 Rscript bigPCA_exe.R $svaAdj_onlyAge --nPCs $nPCs --stand --outDir $outDir
+Rscript bigPCA_exe.R $cmbt_svaAdj_onlyAge --nPCs $nPCs --stand --outDir $outDir
 
 # Run SVA on the SVA-removed dataset and plot surrogate
 # variables to see if batch effect is still present (without saving df
@@ -128,6 +128,11 @@ sva_after_combat=$(echo "$combatAdj" | sed 's/.csv$//')
 sva_after_combat="${sva_after_combat}_onlyAge_svobj.rds"
 Rscript sva_plot.R $combatAdj --sva $sva_after_combat --metDat $metDat --outDir $outDir
 
+Rscript sva_fast_exe.R $cmbt_svaAdj_onlyAge --mod $mod_onlyAge --mod0 $mod0_onlyAge --nSV_method $nSV_method --outDir $outDir
+sva_after_combat_and_sva=$(echo "$cmbt_svaAdj_onlyAge" | sed 's/.csv$//')
+sva_after_combat_and_sva="${sva_after_combat_and_sva}_onlyAge_svobj.rds"
+Rscript sva_plot.R $cmbt_svaAdj_onlyAge --sva $sva_after_combat_and_sva --metDat $metDat --outDir $outDir
+
 # Plot PCAs
 pcaSVAOnlyAge=$(echo "$svaAdj_onlyAge" | sed 's/.csv$//')
 pcaSVAOnlyAge="${pcaSVAOnlyAge}_pca.rds"
@@ -136,5 +141,9 @@ Rscript plotBigPCA_exe.R $pcaSVAOnlyAge --metDat $metDat --x PC1 --y PC2 --outDi
 pcaComBat=$(echo "$combatAdj" | sed 's/.csv$//')
 pcaComBat="${pcaComBat}_pca.rds"
 Rscript plotBigPCA_exe.R $pcaComBat --metDat $metDat --x PC1 --y PC2 --outDir $outDir
+
+pcaSVAafterComBat=$(echo "$cmbt_svaAdj_onlyAge" | sed 's/.csv$//')
+pcaSVAafterComBat="${pcaSVAafterComBat}_pca.rds"
+Rscript plotBigPCA_exe.R $pcaSVAafterComBat --metDat $metDat --x PC1 --y PC2 --outDir $outDir
 
 conda deactivate

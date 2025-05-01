@@ -81,8 +81,14 @@ The outputs of this script are be written in `./results/parsed/ageAnno/`, and co
 - `ageanno_brain_pb_counts.csv`: the pseudo-bulk counts of each cell type per sample.
 - `ageanno_brain_pb_metdat.csv`: the parsed metadata matching pseudo-bulk rows.
 
-## 7. Parsing perturbation data
-### 7.1 Parsing the compilation of perturbations
+## 7. Integrate all clinical samples into a single file
+### 7.1 Add brainSeq Phase II, AgeAnno and perturbation compilation to merged dataset
+In this step, the counts and metadata datasets generated in steps 5, 6 and 7 are merged with `combined_metDat_wTBI.csv` and `combined_counts_wTBI.csv`, which were generated in step 4. This step is performed by `merge_combined_db_wAgeAnno_bsII_and_111.R`. If previous step have been ran correctly, the required files should be already placed in the corresponding directories. The output files are `merged_counts.csv` and `merged_metdat.csv`, both of them saved at `./results/parsed/merged/`.
+### 7.2 Normalize merged clinical dataset
+Here, genes dominated by zero counts are filtered out from `merged_counts.csv`, then all the genes not available in LINCS L1000 are removed, and the dataset is log2 transformed and quantile normalized (`quant_norm(log2(counts + 1))`). The output dataset is generated in `./results/parsed/merged/`, and it's named `merged_counts_log2_quantNorm.csv`. This is the dataset that will be the startpoint of our pre-processing pipeline.
+
+## 8. Parsing perturbation data
+### 8.1 Parsing the compilation of perturbations
 Here, the datasets we compiled from several sources, which are indicated in the Supplementary Table 5 of our manuscript. This step is performed by `parse_pert_compilation.R`, and requires the following files, all of them already included in `./data/perturbation/`:
 - `111_sascha_complete_counts_df.csv`
 - `javier_111_counts.csv`
@@ -91,7 +97,7 @@ Here, the datasets we compiled from several sources, which are indicated in the 
 
 The output files are `counts_111.csv` and `metDat_111.csv`, both saved at `./results/parsed/`.
 
-### 7.2 Parsing LINCS L1000 data
+### 8.2 Extraction and parsing LINCS L1000 data
 
-## 8. Add brainSeq Phase II, AgeAnno and perturbation compilation to merged dataset
-In this step, the counts and metadata datasets generated in steps 5, 6 and 7 are merged with `combined_metDat_wTBI.csv` and `combined_counts_wTBI.csv`, which were generated in step 4. This step is performed by `merge_combined_db_wAgeAnno_bsII_and_111.R`. If previous step have been ran correctly, the required files should be already placed in the corresponding directories. The output files are `merged_counts.csv` and `merged_metdat.csv`, both of them saved at `./results/parsed/merged/`.
+### 8.3 Merge LINCS L1000 and compilation of perturbation data
+Here, the two perturbation datasets were combined and quantile-normalized, using the distribution of `merged_counts_log2_quantNorm.csv` as a target for normalization.

@@ -9,6 +9,7 @@ if(!require(bigstatsr, quietly = T)){
 if(!require(argparser, quietly = T)){
         install.packages("argparser", repos='http://cran.us.r-project.org')
 }
+library(bigstatsr)
 library(argparser)
 
 # Terminal argument parser
@@ -35,7 +36,7 @@ nPCs <- as.numeric(parsed$nPCs)
 stnd <- parsed$stand
 outDir <- as.character(parsed$outDir)
 
-outBaseName <- gsub(".csv", "", basename(parsed$input))
+outBaseName <- gsub(".csv", "", basename(dat))
 
 # Load data
 ################################################################################
@@ -48,6 +49,8 @@ dat <- dat[, colnames(dat) != "V1"]
 big_PCA <- function(df, nComps = 20, stand = F){
         if(stand){
                 print("Standarizing the input dataset...")
+                # Remove genes with SD == 0
+                df <- df[, apply(dat, 2, sd) != 0]
                 scaled_DF <- apply(df, 2, function(x) (x - mean(x))/sd(x))
                 scal = T
                 centr = T

@@ -69,6 +69,10 @@ merged_counts <- rbind.data.frame(
 # Merge metadata
 ################################################################################
 
+# Add perturbation columns
+comb_metdat$perturbation <- "none"
+comb_metdat$exper_group <- ""
+
 cols2Add_bs <- colnames(comb_metdat)[!colnames(comb_metdat) %in% colnames(bs_metdat)]
 cols2Add_aa <- colnames(comb_metdat)[!colnames(comb_metdat) %in% colnames(aa_metdat)]
 cols2Add_pert <- colnames(comb_metdat)[!colnames(comb_metdat) %in% colnames(pert_metdat)]
@@ -101,6 +105,11 @@ merged_metdat <- rbind.data.frame(
 
 # Round ageDeath, as brainSeq has decimals
 merged_metdat$ageDeath <- round(merged_metdat$ageDeath)
+
+# Ensure that perturbation is set to "none" and exper group to ""
+# in all the samples in the merged dataset (all are clinical samples)
+merged_metdat$perturbation <- "none"
+merged_metdat$exper_group <- ""
 
 # Filter counts to keep only what is available in the metadata
 merged_counts <- merged_counts[make.names(rownames(merged_counts)) %in% make.names(merged_metdat$specimenID), ]
