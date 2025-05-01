@@ -21,15 +21,15 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-data="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC_noCerebell_onlyAge_svaAdj.csv"
-metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
+data="../../results/preproc/test_no_lincs/merged_counts_log2_quantNorm_noCerebell_combat_onlyAge_svaAdj.csv"
+metDat="../../results/parsed/merged/merged_metdat.csv"
 respVar="age_chron"
 ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
 alpha="1"
 mem="24G"
 preFiltGenes="none"
 braakThrshld="4"
-outDir="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age/"
+outDir="../../results/models/first_round/"
 
 # Train the model
 ########################################################################################################################

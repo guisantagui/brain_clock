@@ -6,6 +6,13 @@
 #                                                                              #
 ################################################################################
 
+if (!require("devtools",quietly = T)){
+    install.packages("devtools",
+                     repos = 'http://cran.us.r-project.org')
+}
+if(!require("plotUtils", quietly = T)){
+        devtools::install_github('guisantagui/plotUtils', upgrade = "never")
+}
 if(!require(argparser, quietly = T)){
         install.packages("argparser", repos='http://cran.us.r-project.org')
 }
@@ -29,6 +36,7 @@ library(limma)
 library(h2o)
 library(ggplot2)
 library(ggpubr)
+library(plotUtils)
 
 # Terminal argument parser
 ################################################################################
@@ -37,8 +45,8 @@ parser <- arg_parser("Train the GLM on transformed age and assess performance.")
 parser <- add_argument(parser = parser,
                        arg = c("input",
                                "--metDat",
-                               "--respVar",
-                               "--ageTransPars",
+                               #"--respVar",
+                               #"--ageTransPars",
                                "--alpha",
                                "--mem",
                                "--preFiltGenes",
@@ -47,8 +55,8 @@ parser <- add_argument(parser = parser,
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features columns, samples rows. CSV.",
                                 "Metadata file (including ages).",
-                                "What response variable should be used to fit the model (age_chron or age_trans)",
-                                "RDS file with Gompertz-Makeham parameters for transformation.",
+                                #"What response variable should be used to fit the model (age_chron or age_trans)",
+                                #"RDS file with Gompertz-Makeham parameters for transformation.",
                                 "Alpha value for the elastic net.",
                                 "Memory to allocate to h2o instance.",
                                 "CSV file with genes to be prefiltered previous to the fitting. Has to have a column called 'ensembl_gene_id'. If set to 'none' all the genes will be used",
@@ -62,10 +70,19 @@ parsed <- parse_args(parser)
 # Directory stuff
 ################################################################################
 
+dataFile <- "../../results/preproc/test_no_lincs/merged_counts_log2_quantNorm_noCerebell_combat_onlyAge_svaAdj.csv"
+metDatFile <- "../../results/parsed/merged/merged_metdat.csv"
+alph <- 1
+mem <- "24G"
+preFiltGenes="none"
+braakThrshld <- 4
+outDir <- "../../results/models/first_round/"
+lambdaFlag <- T
+
 dataFile <- parsed$input
 metDatFile <- parsed$metDat
-respVar <- parsed$respVar
-ageTransParFile <- parsed$ageTransPars
+#respVar <- parsed$respVar
+#ageTransParFile <- parsed$ageTransPars
 alph <- as.numeric(parsed$alpha)
 mem <- parsed$mem
 preFiltGenes <- parsed$preFiltGenes
@@ -73,37 +90,36 @@ lambdaFlag <- parsed$lambda
 braakThrshld <- as.numeric(parsed$braakThrshld)
 outDir <- parsed$outDir
 
-if(!dir.exists(outDir)){
-        dir.create(outDir, recursive = T)
-}
+create_dir_if_not(outDir)
 
+respVar <- "age_chron"
 # Functions
 ################################################################################
 
 # Functions for doing age transformation
-test <- function(x){
-        exp(-vals[3]*x-(vals[1]/vals[2])*(exp(vals[2]*x)-1))
-}
+#test <- function(x){
+#        exp(-vals[3]*x-(vals[1]/vals[2])*(exp(vals[2]*x)-1))
+#}
 
-inverse = function (f, lower = 0, upper = 110) {
-        function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)[1]
-}
-agetrans_inverse = function(lower,upper) inverse(test, lower, upper)
+#inverse = function (f, lower = 0, upper = 110) {
+#        function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)[1]
+#}
+#agetrans_inverse = function(lower,upper) inverse(test, lower, upper)
 
 # Clips transformed ages to be in a range that can be backtransformed to
 # chronological ages, transforms back to chronological age and returns the 
 # result.
-back2Age <- function(transAge){
-        transAge[transAge > 1] <- 1
-        transAge[transAge < 0] <- .000012
-        transAge2Age <- sapply(transAge,
-                               function(x) agetrans_inverse(0, 110)(x))
-        transAge2Age <- unlist(transAge2Age)
-        names(transAge2Age) <- gsub(".root", "", names(transAge2Age))
-        return(transAge2Age)
-}
+#back2Age <- function(transAge){
+#        transAge[transAge > 1] <- 1
+#        transAge[transAge < 0] <- .000012
+#        transAge2Age <- sapply(transAge,
+#                               function(x) agetrans_inverse(0, 110)(x))
+#        transAge2Age <- unlist(transAge2Age)
+#        names(transAge2Age) <- gsub(".root", "", names(transAge2Age))
+#        return(transAge2Age)
+#}
 
-# Predict the age viven the expression matrix and the model
+# Predict the age given the expression matrix and the model
 predictAge <- function(model,
                        predExpr
 ){
@@ -319,9 +335,7 @@ getModPredAgeVsBraak <- function(df,
 
 metDat <- read.csv(metDatFile, row.names = 1)
 
-dat <- data.frame(data.table::fread(dataFile))
-rownames(dat) <- dat$V1
-dat <- dat[, colnames(dat) != "V1"]
+dat <- read_table_fast(dataFile, row.names = 1)
 
 if (preFiltGenes != "none"){
         preFilt <- read.csv(preFiltGenes, row.names = 1)
@@ -331,16 +345,20 @@ if (preFiltGenes != "none"){
 }
 
 # Load Gompertz-Makeham parameters
-if(respVar == "age_trans"){
-        vals <- readRDS(ageTransParFile)
-        vals <- round(vals,6) #Makes the parameters more readable with little loss of accuracy
-}
+#if(respVar == "age_trans"){
+#        vals <- readRDS(ageTransParFile)
+#        vals <- round(vals,6) #Makes the parameters more readable with little loss of accuracy
+#}
 
 # Data training/testing partition
 ################################################################################
 
-# Split controls and rest
-dat_ctrls <- dat[rownames(dat) %in% make.names(metDat$specimenID[metDat$diagn_4BrainClck == "Control"]), ]
+# Split controls and test
+# Split controls and the external dataset we will use as validation,
+# (besides the 1/3 that of the controls that we are going to leave out of
+# training)
+dat_ctrls <- dat[rownames(dat) %in% make.names(metDat$specimenID[metDat$diagn_4BrainClck == "Control" & metDat$substudy != "brainSeq_pII" & metDat$substudy != "ageAnno"]), ]
+dat_extrn <- dat[rownames(dat) %in% make.names(metDat$specimenID[metDat$diagn_4BrainClck == "Control" & metDat$substudy == "brainSeq_pII"]), ]
 dat_rest <- dat[rownames(dat) %in% make.names(metDat$specimenID[metDat$diagn_4BrainClck == "Rest"]), ]
 
 # Get a subdataset with individuals with a high braak index. We will use it 
@@ -350,12 +368,15 @@ dat_rest_highBraak <- dat_rest[rownames(dat_rest) %in% make.names(metDat$specime
 # Obtain the ages of the controls and transform them
 ageVec <- metDat$ageDeath[match(rownames(dat_ctrls),
                                 make.names(metDat$specimenID))]
-
 names(ageVec) <- rownames(dat_ctrls)
 
-if(respVar == "age_trans"){
-        ageVecTrans <- test(ageVec)
-}
+ageVecExtn <- metDat$ageDeath[match(rownames(dat_extrn),
+                                    make.names(metDat$specimenID))]
+names(ageVecExtn) <- rownames(dat_extrn)
+
+#if(respVar == "age_trans"){
+#        ageVecTrans <- test(ageVec)
+#}
 
 # Split controls in training and testing and create the training DF,
 # including the transformed ages
@@ -386,24 +407,27 @@ for(i in 1:(length(agesBins) - 1)){
 }
 
 testSet_metDat <- metDat[make.names(metDat$specimenID) %in% rownames(dat_ctrls) & !(make.names(metDat$specimenID) %in% make.names(inTrain)), ]
+extnSet_metDat <- metDat[make.names(metDat$specimenID) %in% rownames(dat_extrn), ]
 
 write.csv(testSet_metDat, file = sprintf("%smetDat_testSet.csv", outDir))
+write.csv(extnSet_metDat, file = sprintf("%smetDat_extnSet.csv", outDir))
 
 dat_ctrls_train <- dat_ctrls[make.names(inTrain), ]
 dat_ctrls_test <- dat_ctrls[!rownames(dat_ctrls) %in% make.names(inTrain), ]
 
 
-if(respVar == "age_trans"){
-        ageTransTrain <- ageVecTrans[match(rownames(dat_ctrls_train),
-                                           names(ageVecTrans))]
-        
-        train4Mod <- cbind.data.frame(ageTransTrain, dat_ctrls_train)
-}else if (respVar == "age_chron"){
+#if(respVar == "age_trans"){
+#        ageTransTrain <- ageVecTrans[match(rownames(dat_ctrls_train),
+#                                           names(ageVecTrans))]
+#        
+#        train4Mod <- cbind.data.frame(ageTransTrain, dat_ctrls_train)
+#}
+#else if (respVar == "age_chron"){
         ageChronTrain <- ageVec[match(rownames(dat_ctrls_train),
                                       names(ageVec))]
         
         train4Mod <- cbind.data.frame(ageChronTrain, dat_ctrls_train)
-}
+#}
 
 colnames(train4Mod)[1] <- respVar
 
@@ -432,13 +456,12 @@ model <- h2o.glm(y = respVar,
                  lambda = lambda,
                  standardize = T,
                  alpha = alph,
-                 #alpha = 0,
                  seed = 100,
                  max_active_predictors = ncol(trainData_h2o),
                  solver = "IRLSM")
 
-h2o.saveModel(model, path = sprintf("%smodFuncsAlpha%s", outDir, alph), force = T)
-saveRDS(model, file = sprintf("%smodFuncsAlpha%s.rds", outDir, alph))
+h2o.saveModel(model, path = sprintf("%smod_alpha%s", outDir, alph), force = T)
+#saveRDS(model, file = sprintf("%smodFuncsAlpha%s.rds", outDir, alph))
 
 # Model evaluation in test dataset
 ################################################################################
@@ -454,7 +477,7 @@ plotDF <- data.frame(metric = c(rep("r2", length(cv_r2)),
                      value = c(cv_r2, cv_mae, cv_rmse))
 
 
-ggplot(data = plotDF, mapping = aes(x = metric, y = value)) +
+mod_cvMetrics_plt <- ggplot(data = plotDF, mapping = aes(x = metric, y = value)) +
         geom_boxplot(outlier.shape = NA) + geom_jitter() +
         theme(axis.text.y = element_text(size=15),
               axis.text.x = element_text(size=15),
@@ -467,91 +490,136 @@ ggplot(data = plotDF, mapping = aes(x = metric, y = value)) +
               panel.border = element_rect(colour = "black",
                                           fill=NA, linewidth = 1))
 
-ggsave(filename = sprintf("%smodFuncsAlpha%s_cvMetrics.pdf", outDir, alph))
+ggsave(filename = sprintf("%smod_alpha%s_cvMetrics.pdf", outDir, alph),
+       plot = mod_cvMetrics_plt)
 
-# Predict the age in the test dataset
+# Predict the age in the both test datasets (1:3 leave out and external dataset i.e.
+# BrainSeq Phase II)
 predicted <- predictAge(model, t(dat_ctrls_test))
+predicted_extn <- predictAge(model, t(dat_extrn))
 
 # Back-transform to chronological age
-if(respVar == "age_trans"){
-        predicted2Age <- back2Age(predicted)
-        testAges <- ageVec[match(names(predicted2Age), names(ageVec))]
-        testAgesTrns <- ageVecTrans[match(rownames(dat_ctrls_test),
-                                          names(ageVecTrans))]
-        
-        # Get metrics for test set
-        metrics_chronAge <- getMetrics(testAges, predicted2Age)
-        metrics_transAge <- getMetrics(testAgesTrns, predicted)
-        print("Metrics for test dataset on chronological ages:")
+#if(respVar == "age_trans"){
+#        predicted2Age <- back2Age(predicted)
+#        testAges <- ageVec[match(names(predicted2Age), names(ageVec))]
+#        testAgesTrns <- ageVecTrans[match(rownames(dat_ctrls_test),
+#                                          names(ageVecTrans))]
+#        
+#        # Get metrics for test set
+#        metrics_chronAge <- getMetrics(testAges, predicted2Age)
+#        metrics_transAge <- getMetrics(testAgesTrns, predicted)
+#        print("Metrics for test dataset on chronological ages:")
+#        print(metrics_chronAge)
+#        
+#        print("Metrics for test dataset on transformed ages:")
+#        print(metrics_transAge)
+#       write.csv(metrics_chronAge,
+#                 file = sprintf("%smetricsTest_chronAge_alpha%s.csv", outDir, alph))
+#        write.csv(metrics_transAge,
+#                  file = sprintf("%smetricsTest_transAge_alpha%s.csv", outDir, alph))
+#        
+#        # Plot R2 of training, CV and testing
+#        dfr2 <- data.frame(r2_type = factor(c("r2_training",
+#                                              rep("r2_cv",
+#                                                  length(model@model$cross_validation_metrics_summary["r2", -c(1, 2)])),
+#                                              "r2_test"),
+#                                            levels = c("r2_training",
+#                                                       "r2_cv",
+#                                                       "r2_test")),
+#                           value = c(h2o.r2(model, train = T),
+#                                     unlist(model@model$cross_validation_metrics_summary["r2", -c(1, 2)]),
+#                                     metrics_transAge$value[metrics_transAge$metric == "r2"]))
+#}else if(respVar == "age_chron"){
+
+# 1:3 leave out test dataset
+        testAges <- ageVec[match(names(predicted), names(ageVec))]
+        metrics_chronAge <- getMetrics(testAges, predicted)
+        print("Metrics for 1:3 leave out test dataset on chronological ages:")
         print(metrics_chronAge)
-        
-        print("Metrics for test dataset on transformed ages:")
-        print(metrics_transAge)
         write.csv(metrics_chronAge,
                   file = sprintf("%smetricsTest_chronAge_alpha%s.csv", outDir, alph))
-        write.csv(metrics_transAge,
-                  file = sprintf("%smetricsTest_transAge_alpha%s.csv", outDir, alph))
-        
+
+test_data_preds <- data.frame(specimenID = names(testAges),
+                              real_age = testAges,
+                              pred_age = predicted)
+tst_predage_plt <- ggplot(test_data_preds, mapping = aes(x = real_age, y = pred_age)) + geom_point()
+ggsave(filename = sprintf("%stest_dat_predvsreal.pdf", outDir), plot = tst_predage_plt)
+
+# External test dataset
+        metrics_chronAgeExtn <- getMetrics(ageVecExtn, predicted_extn)
+        print("Metrics for the external test dataset on chronological ages:")
+        print(metrics_chronAgeExtn)
+        write.csv(metrics_chronAgeExtn,
+                  file = sprintf("%smetricsExtn_chronAge_alpha%s.csv", outDir, alph))
+
+extn_data_preds <- data.frame(specimenID = names(ageVecExtn),
+                              real_age = ageVecExtn,
+                              pred_age = predicted_extn)
+ext_predage_plt <- ggplot(extn_data_preds, mapping = aes(x = real_age, y = pred_age)) + geom_point()
+ggsave(filename = sprintf("%sext_dat_predvsreal.pdf", outDir), plot = ext_predage_plt)
+# Calculate bias, to confirm there is an ofset
+mean(test_data_preds$pred_age - test_data_preds$real_age)
+median(test_data_preds$pred_age - test_data_preds$real_age)
+
+# External
+mean(extn_data_preds$pred_age - extn_data_preds$real_age)
+median(extn_data_preds$pred_age - extn_data_preds$real_age)
+
+
+
         # Plot R2 of training, CV and testing
         dfr2 <- data.frame(r2_type = factor(c("r2_training",
                                               rep("r2_cv",
                                                   length(model@model$cross_validation_metrics_summary["r2", -c(1, 2)])),
-                                              "r2_test"),
+                                                  "r2_test_leave_out",
+                                                  "r2_test_external"),
                                             levels = c("r2_training",
                                                        "r2_cv",
-                                                       "r2_test")),
+                                                       "r2_test_leave_out",
+                                                       "r2_test_external")),
                            value = c(h2o.r2(model, train = T),
                                      unlist(model@model$cross_validation_metrics_summary["r2", -c(1, 2)]),
-                                     metrics_transAge$value[metrics_transAge$metric == "r2"]))
-}else if(respVar == "age_chron"){
-        testAges <- ageVec[match(names(predicted), names(ageVec))]
-        metrics_chronAge <- getMetrics(testAges, predicted)
-        print("Metrics for test dataset on chronological ages:")
-        print(metrics_chronAge)
-        write.csv(metrics_chronAge,
-                  file = sprintf("%smetricsTest_chronAge_alpha%s.csv", outDir, alph))
-        
-        # Plot R2 of training, CV and testing
-        dfr2 <- data.frame(r2_type = factor(c("r2_training",
-                                              rep("r2_cv",
-                                                  length(model@model$cross_validation_metrics_summary["r2", -c(1, 2)])), "r2_test"),
-                                            levels = c("r2_training",
-                                                       "r2_cv",
-                                                       "r2_test")),
-                           value = c(h2o.r2(model, train = T),
-                                     unlist(model@model$cross_validation_metrics_summary["r2", -c(1, 2)]),
-                                     metrics_chronAge$value[metrics_chronAge$metric == "r2"]))
+                                     metrics_chronAge$value[metrics_chronAge$metric == "r2"],
+                                     metrics_chronAgeExtn$value[metrics_chronAgeExtn$metric == "r2"]))
         dfmae <- data.frame(mae_type = factor(c("mae_training",
                                               rep("mae_cv",
-                                                  length(model@model$cross_validation_metrics_summary["mae", -c(1, 2)])), "mae_test"),
+                                                  length(model@model$cross_validation_metrics_summary["mae", -c(1, 2)])),
+                                                  "mae_test_leave_out",
+                                                  "mae_test_external"),
                                             levels = c("mae_training",
                                                        "mae_cv",
-                                                       "mae_test")),
+                                                       "mae_test_leave_out",
+                                                       "mae_test_external")),
                            value = c(h2o.mae(model, train = T),
                                      unlist(model@model$cross_validation_metrics_summary["mae", -c(1, 2)]),
-                                     metrics_chronAge$value[metrics_chronAge$metric == "mae"]))
-}
+                                     metrics_chronAge$value[metrics_chronAge$metric == "mae"],
+                                     metrics_chronAgeExtn$value[metrics_chronAgeExtn$metric == "mae"]))
+#}
 
 
 dfr2_bxplt <- dfr2[dfr2$r2_type == "r2_cv", ]
 dfr2_bxplt$r2_type <- factor(dfr2_bxplt$r2_type, levels = c("r2_training",
                                                             "r2_cv",
-                                                            "r2_test"))
+                                                            "r2_test_leave_out",
+                                                            "r2_test_external"))
 dfr2_point <- dfr2[dfr2$r2_type != "r2_cv", ]
 dfr2_point$r2_type <- factor(dfr2_point$r2_type, levels = c("r2_training",
                                                             "r2_cv",
-                                                            "r2_test"))
+                                                            "r2_test_leave_out",
+                                                            "r2_test_external"))
 
-ggplot(data = dfr2, mapping = aes(x = r2_type, y = value)) +
+r2_plt <- ggplot(data = dfr2, mapping = aes(x = r2_type, y = value)) +
         geom_point(data = dfr2_point) + ylim(0, 1) +
         geom_boxplot(data = dfr2_bxplt, outlier.shape = NA) +
         geom_jitter(data = dfr2_bxplt) +
         scale_x_discrete(limits = c("r2_training",
                                     "r2_cv",
-                                    "r2_test"),
+                                    "r2_test_leave_out",
+                                    "r2_test_external"),
                          labels = c("r2_training" = "train set",
                                     "r2_cv" = "cross-validation",
-                                    "r2_test" = "test set")) +
+                                    "r2_test_leave_out" = "test set (1:3 leave-out)",
+                                    "r2_test_external" = "test set (external)")) +
         ylab(expression(R^2)) +
         ylim(c(floor(min(dfr2$value * 10)) / 10, 1)) + 
         theme(axis.text.y = element_text(size=15),
@@ -567,27 +635,32 @@ ggplot(data = dfr2, mapping = aes(x = r2_type, y = value)) +
                                           fill=NA, linewidth = 1))
 
 ggsave(sprintf("%smodelAlph%sR2.pdf", outDir, as.character(alph)),
-       height = 5, width = 2)
+       height = 5, width = 2,
+       plot = r2_plt)
 
 dfmae_bxplt <- dfmae[dfmae$mae_type == "mae_cv", ]
 dfmae_bxplt$mae_type <- factor(dfmae_bxplt$mae_type, levels = c("mae_training",
                                                                 "mae_cv",
-                                                                "mae_test"))
+                                                                "mae_test_leave_out",
+                                                                "mae_test_external"))
 dfmae_point <- dfmae[dfmae$mae_type != "mae_cv", ]
 dfmae_point$mae_type <- factor(dfmae_point$mae_type, levels = c("mae_training",
                                                                 "mae_cv",
-                                                                "mae_test"))
+                                                                "mae_test_leave_out",
+                                                                "mae_test_external"))
 
-ggplot(data = dfmae, mapping = aes(x = mae_type, y = value)) +
+mae_plt <- ggplot(data = dfmae, mapping = aes(x = mae_type, y = value)) +
         geom_point(data = dfmae_point) + ylim(0, 1) +
         geom_boxplot(data = dfmae_bxplt, outlier.shape = NA) +
         geom_jitter(data = dfmae_bxplt) +
         scale_x_discrete(limits = c("mae_training",
                                     "mae_cv",
-                                    "mae_test"),
+                                    "mae_test_leave_out",
+                                    "mae_test_external"),
                          labels = c("mae_training" = "train set",
                                     "mae_cv" = "cross-validation",
-                                    "mae_test" = "test set")) +
+                                    "mae_test" = "test set (1:3 leave-out)",
+                                    "mae_test" = "test set (external)")) +
         ylab("MAE") +
         ylim(c(floor(min(dfmae$value)), ceiling(max(dfmae$value)))) + 
         theme(axis.text.y = element_text(size=15),
@@ -616,93 +689,93 @@ names(agesHighBRaak) <- rownames(dat_rest_highBraak)
 
 
 
-if(respVar == "age_trans"){
-        # Transform actual chronological ages to transformed ages to compute
-        # R2
-        agesHighBRaakTrns <- test(agesHighBRaak)
-        # Back-transform to chronological age
-        predicted_hBraak2Age <- back2Age(predicted_hBraak)
-        # Get metrics for the high braak 
-        metrics_hBraak_chronAge <- getMetrics(agesHighBRaak, predicted_hBraak2Age)
-        metrics_hBraak_transAge <- getMetrics(agesHighBRaakTrns, predicted_hBraak)
+#if(respVar == "age_trans"){
+#        # Transform actual chronological ages to transformed ages to compute
+#       # R2
+#        agesHighBRaakTrns <- test(agesHighBRaak)
+#       # Back-transform to chronological age
+#        predicted_hBraak2Age <- back2Age(predicted_hBraak)
+#        # Get metrics for the high braak 
+#        metrics_hBraak_chronAge <- getMetrics(agesHighBRaak, predicted_hBraak2Age)
+#        metrics_hBraak_transAge <- getMetrics(agesHighBRaakTrns, predicted_hBraak)
+#        
+#        print("Metrics for high-Braak samples on chronological ages:")
+#        print(metrics_hBraak_chronAge)
+#        
+#        print("Metrics for high-Braak samples on transformed ages:")
+#        print(metrics_hBraak_transAge)
+#        
+#        write.csv(metrics_hBraak_chronAge,
+#                  file = sprintf("%smetricsHBraak_chronAge_alpha%s.csv", outDir, alph))
+#        write.csv(metrics_hBraak_transAge,
+#                  file = sprintf("%smetricsHBraak_transAge_alpha%s.csv", outDir, alph))
         
-        print("Metrics for high-Braak samples on chronological ages:")
-        print(metrics_hBraak_chronAge)
-        
-        print("Metrics for high-Braak samples on transformed ages:")
-        print(metrics_hBraak_transAge)
-        
-        write.csv(metrics_hBraak_chronAge,
-                  file = sprintf("%smetricsHBraak_chronAge_alpha%s.csv", outDir, alph))
-        write.csv(metrics_hBraak_transAge,
-                  file = sprintf("%smetricsHBraak_transAge_alpha%s.csv", outDir, alph))
-        
-        # Plot chronological age vs predicted age in test control dataset, and 
-        # in ND dataset. Consider only ages from the minimum neurodegenerated onwards.
-        comp_predAges_test_ND(testAges,
-                              agesHighBRaak,
-                              predicted2Age,
-                              predicted_hBraak2Age,
-                              color = "group")$plot
-        
-        ggsave(sprintf("%sctrls_highBraak_diagn_alpha%s.pdf", outDir, alph), 
-               height = 8,
-               width = 9)
-        
-        comp_predAges_test_ND(testAges,
-                              agesHighBRaak,
-                              predicted2Age,
-                              predicted_hBraak2Age,
-                              color = "braak")$plot
-        
-        ggsave(sprintf("%sctrls_highBraak_braak_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
-        
-        comp_predAges_test_ND(testAges,
-                              agesHighBRaak,
-                              predicted2Age,
-                              predicted_hBraak2Age,
-                              color = "substudy")$plot
-        
-        ggsave(sprintf("%sctrls_highBraak_batch_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
-        
-        
-        # Plot chronological age vs predicted age in test control dataset, and 
-        # in ND dataset. Consider all ages..
-        predAgeDF_tst_vs_nd <- comp_predAges_test_ND(testAges,
-                                                     agesHighBRaak,
-                                                     predicted2Age,
-                                                     predicted_hBraak2Age,
-                                                     color = "group",
-                                                     filtCommAgeRank = F)
-        
-        predAgeDF_tst_vs_nd$plot
-        
-        ggsave(sprintf("%sctrls_highBraak_all_diagn_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
-        
-        comp_predAges_test_ND(testAges,
-                              agesHighBRaak,
-                              predicted2Age,
-                              predicted_hBraak2Age,
-                              color = "braak",
-                              filtCommAgeRank = F)$plot
-        
-        ggsave(sprintf("%sctrls_highBraak_all_braak_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
-        
-        comp_predAges_test_ND(testAges,
-                              agesHighBRaak,
-                              predicted2Age,
-                              predicted_hBraak2Age,
-                              color = "substudy",
-                              filtCommAgeRank = F)$plot
-        
-        ggsave(sprintf("%sctrls_highBraak_all_batch_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
-        
-}else if(respVar == "age_chron"){
+#        # Plot chronological age vs predicted age in test control dataset, and 
+#        # in ND dataset. Consider only ages from the minimum neurodegenerated onwards.
+#        comp_predAges_test_ND(testAges,
+#                              agesHighBRaak,
+#                              predicted2Age,
+#                              predicted_hBraak2Age,
+#                              color = "group")$plot
+#        
+#        ggsave(sprintf("%sctrls_highBraak_diagn_alpha%s.pdf", outDir, alph), 
+#               height = 8,
+#               width = 9)
+#        
+#        comp_predAges_test_ND(testAges,
+#                              agesHighBRaak,
+#                              predicted2Age,
+#                              predicted_hBraak2Age,
+#                              color = "braak")$plot
+#        
+#        ggsave(sprintf("%sctrls_highBraak_braak_alpha%s.pdf", outDir, alph),
+#               height = 8, width = 9)
+#       
+#        comp_predAges_test_ND(testAges,
+#                              agesHighBRaak,
+#                              predicted2Age,
+#                              predicted_hBraak2Age,
+#                              color = "substudy")$plot
+#        
+#        ggsave(sprintf("%sctrls_highBraak_batch_alpha%s.pdf", outDir, alph),
+#               height = 8, width = 9)
+#        
+#        
+#        # Plot chronological age vs predicted age in test control dataset, and 
+#        # in ND dataset. Consider all ages..
+#        predAgeDF_tst_vs_nd <- comp_predAges_test_ND(testAges,
+#                                                     agesHighBRaak,
+#                                                     predicted2Age,
+#                                                     predicted_hBraak2Age,
+#                                                     color = "group",
+#                                                     filtCommAgeRank = F)
+#        
+#        predAgeDF_tst_vs_nd$plot
+#        
+#        ggsave(sprintf("%sctrls_highBraak_all_diagn_alpha%s.pdf", outDir, alph),
+#               height = 8, width = 9)
+#        
+#        comp_predAges_test_ND(testAges,
+#                              agesHighBRaak,
+#                              predicted2Age,
+#                              predicted_hBraak2Age,
+#                              color = "braak",
+#                              filtCommAgeRank = F)$plot
+#        
+#        ggsave(sprintf("%sctrls_highBraak_all_braak_alpha%s.pdf", outDir, alph),
+#               height = 8, width = 9)
+#        
+#        comp_predAges_test_ND(testAges,
+#                              agesHighBRaak,
+#                              predicted2Age,
+#                              predicted_hBraak2Age,
+#                              color = "substudy",
+#                              filtCommAgeRank = F)$plot
+#        
+#        ggsave(sprintf("%sctrls_highBraak_all_batch_alpha%s.pdf", outDir, alph),
+#               height = 8, width = 9)
+#        
+#}else if(respVar == "age_chron"){
         metrics_hBraak_chronAge <- getMetrics(agesHighBRaak, predicted_hBraak)
         write.csv(metrics_hBraak_chronAge,
                   file = sprintf("%smetricsHBraak_chronAge_alpha%s.csv", outDir, alph))
@@ -719,23 +792,24 @@ if(respVar == "age_trans"){
                height = 8,
                width = 9)
         
-        comp_predAges_test_ND(testAges,
+        ctrls_hBraak_plt <- comp_predAges_test_ND(testAges,
                               agesHighBRaak,
                               predicted,
                               predicted_hBraak,
                               color = "braak")$plot
         
         ggsave(sprintf("%sctrls_highBraak_braak_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
+               height = 8, width = 9, plot = ctrls_hBraak_plt)
         
-        comp_predAges_test_ND(testAges,
+        ctrls_hBraak_batchCol_plt <- comp_predAges_test_ND(testAges,
                               agesHighBRaak,
                               predicted,
                               predicted_hBraak,
                               color = "substudy")$plot
         
         ggsave(sprintf("%sctrls_highBraak_batch_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
+               height = 8, width = 9,
+               plot = ctrls_hBraak_batchCol_plt)
         
         
         # Plot chronological age vs predicted age in test control dataset, and 
@@ -747,12 +821,13 @@ if(respVar == "age_trans"){
                                                      color = "group",
                                                      filtCommAgeRank = F)
         
-        predAgeDF_tst_vs_nd$plot
+        cntrls_hBraak_allDiagn_plt <- predAgeDF_tst_vs_nd$plot
         
         ggsave(sprintf("%sctrls_highBraak_all_diagn_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
+               height = 8, width = 9,
+               plot = cntrls_hBraak_allDiagn_plt)
         
-        comp_predAges_test_ND(testAges,
+        cntrls_hBraak_allBraak_plt <- comp_predAges_test_ND(testAges,
                               agesHighBRaak,
                               predicted,
                               predicted_hBraak,
@@ -760,9 +835,10 @@ if(respVar == "age_trans"){
                               filtCommAgeRank = F)$plot
         
         ggsave(sprintf("%sctrls_highBraak_all_braak_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
+               height = 8, width = 9,
+               plot = cntrls_hBraak_allBraak_plt)
         
-        comp_predAges_test_ND(testAges,
+        cntrls_hBraak_allBatch_plt <- comp_predAges_test_ND(testAges,
                               agesHighBRaak,
                               predicted,
                               predicted_hBraak,
@@ -770,8 +846,9 @@ if(respVar == "age_trans"){
                               filtCommAgeRank = F)$plot
         
         ggsave(sprintf("%sctrls_highBraak_all_batch_alpha%s.pdf", outDir, alph),
-               height = 8, width = 9)
-}
+               height = 8, width = 9,
+               plot = cntrls_hBraak_allBatch_plt)
+#}
 
 
 
@@ -783,7 +860,7 @@ df4DisContComp_60to70 <- predAgeDF_tst_vs_nd$data[predAgeDF_tst_vs_nd$data$age_d
 #plot(density(df4DisContComp_60to70$pred_age[df4DisContComp_60to70$group == "nd"]))
 #plot(density(df4DisContComp_60to70$pred_age[df4DisContComp_60to70$group == "control"]))
 
-ggplot(df4DisContComp_60to70, mapping = aes(x = group, y = pred_age)) +
+dis_vs_cont_60to70bxplt <-ggplot(df4DisContComp_60to70, mapping = aes(x = group, y = pred_age)) +
         geom_boxplot() +
         stat_compare_means(method = "wilcox.test") +
         stat_compare_means(method = "wilcox.test") +
@@ -805,7 +882,8 @@ ggplot(df4DisContComp_60to70, mapping = aes(x = group, y = pred_age)) +
 
 ggsave(filename = sprintf("%spredAge60to70ctrlVsHBraak.pdf", outDir),
        width = 4,
-       height = 5)
+       height = 5,
+       plot = dis_vs_cont_60to70bxplt)
 
 # Do a LM and an ANCOVA to assess if the influence of neurodegeneration on
 # predicted age is significant.
@@ -829,7 +907,7 @@ capture.output(summary(ancova_mod),
                file = sprintf("%sND_ancova_alph%s.txt",
                               outDir, as.character(alph)))
 
-ggplot(predAgeDF_tst_vs_nd_ancova, aes(x = age_death, y = pred_age, color = group)) +
+ancova_plot <- ggplot(predAgeDF_tst_vs_nd_ancova, aes(x = age_death, y = pred_age, color = group)) +
         geom_point() +
         geom_smooth(method = "lm", se = FALSE) +
         labs(x = "chronological age", y = "predicted age") +
@@ -847,7 +925,8 @@ ggplot(predAgeDF_tst_vs_nd_ancova, aes(x = age_death, y = pred_age, color = grou
                                           fill=NA, linewidth = 1))
 ggsave(sprintf("%sctrls_highBraak_diagn_alpha%s_wLines.pdf", outDir, alph), 
        height = 8,
-       width = 9)
+       width = 9,
+       ancova_plot)
 
 ancova_mod_2 <- rstatix::anova_test(data = predAgeDF_tst_vs_nd_ancova,
                                     formula = pred_age ~ age_death + group + age_death:group)
@@ -866,19 +945,19 @@ wBraak_ages <- metDat$ageDeath[match(rownames(dat_rest_wBraak), make.names(metDa
 predicted_wBraak <- predictAge(model, t(dat_rest_wBraak))
 
 
-if(respVar == "age_trans"){
-        predicted_wBraak2Age <- back2Age(predicted_wBraak)
-        
-        dfBraak <- data.frame(specimenID = metDat$specimenID[match(names(predicted_wBraak2Age),
-                                                                   make.names(metDat$specimenID))],
-                              age_death = wBraak_ages,
-                              pred_age = predicted_wBraak2Age,
-                              braak = metDat$Braak[match(names(predicted_wBraak2Age),
-                                                         make.names(metDat$specimenID))],
-                              group = "Rest",
-                              substudy = metDat$substudy[match(names(predicted_wBraak2Age),
-                                                               make.names(metDat$specimenID))])
-}else if (respVar == "age_chron"){
+#if(respVar == "age_trans"){
+#        predicted_wBraak2Age <- back2Age(predicted_wBraak)
+#        
+#        dfBraak <- data.frame(specimenID = metDat$specimenID[match(names(predicted_wBraak2Age),
+#                                                                   make.names(metDat$specimenID))],
+#                              age_death = wBraak_ages,
+#                              pred_age = predicted_wBraak2Age,
+#                              braak = metDat$Braak[match(names(predicted_wBraak2Age),
+#                                                         make.names(metDat$specimenID))],
+#                              group = "Rest",
+#                              substudy = metDat$substudy[match(names(predicted_wBraak2Age),
+#                                                               make.names(metDat$specimenID))])
+#}else if (respVar == "age_chron"){
         dfBraak <- data.frame(specimenID = metDat$specimenID[match(names(predicted_wBraak),
                                                                    make.names(metDat$specimenID))],
                               age_death = wBraak_ages,
@@ -888,7 +967,7 @@ if(respVar == "age_trans"){
                               group = "Rest",
                               substudy = metDat$substudy[match(names(predicted_wBraak),
                                                                make.names(metDat$specimenID))])
-}
+#}
 
 df4DisContComp <- predAgeDF_tst_vs_nd$data
 df4DisContComp$braak <- rep(NA, nrow(df4DisContComp))
