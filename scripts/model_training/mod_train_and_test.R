@@ -76,7 +76,7 @@ alph <- 1
 mem <- "24G"
 preFiltGenes <- "none"
 braakThrshld <- 4
-outDir <- "../../results/models/first_round/"
+outDir <- "../../results/models/first_round_sva/"
 lambdaFlag <- T
 refit <- F
 overwrite_mod <- T
@@ -429,6 +429,8 @@ if (length(model_files) == 0 | refit){
                  standardize = T,
                  alpha = alph,
                  seed = 100,
+                 keep_cross_validation_predictions = TRUE,
+                 keep_cross_validation_fold_assignment = FALSE,
                  max_active_predictors = ncol(trainData_h2o),
                  solver = "IRLSM")
         h2o.saveModel(model, path = sprintf("%smod_alpha%s", outDir, alph),
@@ -441,6 +443,30 @@ if (length(model_files) == 0 | refit){
         print(sprintf("Loading %s from %s...", basename(model_file), dirname(model_file)))
         model <- h2o.loadModel(model_file)
 }
+
+# Save coefficients
+coefs_table <- model@model$coefficients_table
+
+isNonZero <- coefs_table$coefficients != 0
+
+nonZeroCoefs <- coefs_table[isNonZero, ]
+nonZeroCoefs <- as.data.frame(nonZeroCoefs)
+nonZeroCoefs <- nonZeroCoefs[nonZeroCoefs$names != "Intercept", ]
+
+colnames(nonZeroCoefs) <- gsub("names",
+                               "ensembl_gene_id",
+                               colnames(nonZeroCoefs))
+
+rownames(nonZeroCoefs) <- nonZeroCoefs$ensembl_gene_id
+
+sprintf("%smod_alpha%s", outDir, alph)
+outNameCoefs <- sprintf("%smod_alpha%s_coefs.csv", outDir, alph)
+
+write_table_fast(nonZeroCoefs, outNameCoefs)
+
+print(sprintf("%s saved in %s.",
+              basename(outNameCoefs),
+              dirname(outNameCoefs)))
 
 # Model evaluation in test dataset
 ################################################################################

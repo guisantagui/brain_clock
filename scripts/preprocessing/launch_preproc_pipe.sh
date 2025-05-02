@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=svaFastAll
+#SBATCH --job-name=preproc_first
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
@@ -10,9 +10,9 @@
 #SBATCH -c 8
 #SBATCH --time=00-01:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_svaFastAll_lincsLndmrk.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/preprocessing/output_preproc_first.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_svaFastAll_lincsLndmrk.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/preprocessing/error_preproc_first.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p bigmem
 #SBATCH --qos=normal
@@ -95,7 +95,7 @@ modCombat="${modCombat}_combatMod.rds"
 
 # Remove batch effect: ComBat --> SVA
 
-# These lines are for running ComBat --> SVA
+# These lines are for running ComBat
 Rscript combat_exe.R $noCerebFile --batch $batch --combatMod $modCombat --outDir $outDir
 combatAdj=$(echo "$noCerebFile" | sed 's/.csv$//')
 combatAdj="${combatAdj}_combat.csv"

@@ -21,11 +21,11 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-datFile="/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC_modFuncsAlpha1_coefs_noCerebell_onlyAge_svaAdj.csv"
-modFile="/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age_onSignGenes/modFuncsAlpha1/GLM_model_R_1727080896797_1"
-metDat="/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
+datFile="../../results/preproc/test_no_lincs/merged_counts_log2_quantNorm_noCerebell_onlyAge_svaAdj.csv"
+modDir="../../results/models/first_round_sva/mod_alpha1/"
+metDat="../../results/parsed/merged/merged_metdat.csv"
 modCoefsFile="../../results/models/second_round_model/modFuncsAlpha1_coefs.csv"
-respVar="age_chron"
+#respVar="age_chron"
 ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
 batchSize=8000
 whatSampsTest="single_cell"

@@ -83,7 +83,7 @@ recurs_intersect <- function(lst){
 # Directory stuff
 ################################################################################
 counts_f <- "../../results/parsed/merged/merged_counts.csv"
-lincsGeneInfo <- "../../data/perturbation/lincs/lincs_genes_geneInfo.csv"
+lincsGeneInfo <- "../../data/perturbation/lincs/lincs_genes.csv"
 metdat_f <- "../../results/parsed/merged/merged_metdat.csv"
 
 propZeroRem <- .8
@@ -99,14 +99,14 @@ outName <- sprintf("%s%s_log2_quantNorm.csv", outDir,
 ################################################################################
 
 counts <- read_table_fast(counts_f, row.names = 1)
-lincs_gi <- read_table_fast(lincsGeneInfo, row.names = 1)
+lincs_gi <- read.csv(lincsGeneInfo, row.names = 1)
 metdat <- read_table_fast(metdat_f, row.names = 1)
 
 # Preprocessing
 ################################################################################
 
 # Keep only genes in LINCS
-commGenes <- intersect(lincs_gi$ensembl_gene_id, colnames(counts))
+commGenes <- intersect(lincs_gi$gene, colnames(counts))
 counts <- counts[, commGenes]
 # Ensure that only what is available in the metadata is in counts
 counts <- counts[make.names(rownames(counts)) %in% make.names(metdat$specimenID), ]

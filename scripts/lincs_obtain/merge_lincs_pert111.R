@@ -38,7 +38,7 @@ metDatLincs_NPC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parse
 metDatLincs_NEU_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/lincs_NEU_concat_metDat.csv"
 metDatLincs_MIC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA-PSEN1/parsed_mats/lincs_MICROGLIA-PSEN1_concat_metDat.csv"
 
-counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/preproc/merged_counts_log2_quantNorm.csv"
+counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_counts_log2_quantNorm.csv"
 metDat_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
 
 outDir <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged_perts/"
@@ -120,6 +120,9 @@ metDat_perts <- cbind.data.frame(metDat_perts, df2AddPerts)
 metDat_lincsPert <- rbind.data.frame(metDat_perts,
                                      metDat_lincs)
 
+# Keep only genes at the intersection with the clinical data
+commGenes_clin <- intersect(colnames(lincsPerts), colnames(counts_clin))
+lincsPerts <- lincsPerts[, commGenes_clin]
 # Save expression and metadata datasets
 ################################################################################
 write_table_fast(lincsPerts, f = outPath)

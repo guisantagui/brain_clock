@@ -98,6 +98,7 @@ Here, the datasets we compiled from several sources, which are indicated in the 
 The output files are `counts_111.csv` and `metDat_111.csv`, both saved at `./results/parsed/`.
 
 ### 8.2 Extraction and parsing LINCS L1000 data
+- `cp_predicted_RNAseq_profiles.gctx`.
 
 ### 8.3 Merge LINCS L1000 and compilation of perturbation data
 Here, the two perturbation datasets were combined and quantile-normalized, using the distribution of `merged_counts_log2_quantNorm.csv` as a target for normalization.

@@ -11,32 +11,35 @@ if(!require("h2o", quietly = T)){
                          type="source",
                          repos="https://h2o-release.s3.amazonaws.com/h2o/rel-3.46.0/2/R")
 }
+if (!require("devtools",quietly = T)){
+    install.packages("devtools",
+                     repos = 'http://cran.us.r-project.org')
+}
+if(!require("plotUtils", quietly = T)){
+        devtools::install_github('guisantagui/plotUtils', upgrade = "never")
+}
 library(h2o)
-
+library(plotUtils)
 # Terminal argument parser
 ################################################################################
 parser <- arg_parser("Train the GLM on transformed age and assess performance.")
 
 parser <- add_argument(parser = parser,
                        arg = c("input",
-                               "--modFile",
+                               "--modDir",
                                "--metDat",
-                               "--respVar",
-                               "--ageTransPars",
                                "--sizeBatch",
                                "--whatSampsTest",
                                "--mem",
                                "--outDir"),
                        help = c("Input transcriptomic dataset, features columns, samples rows. CSV.",
-                                "File of the h2o model (generated with mod_train_and_test.R)",
+                                "Directory where the h2o model is (generated with mod_train_and_test.R)",
                                 "Metadata file (including ages).",
-                                "Response variable used in the model (age_chron or age_trans).",
-                                "RDS file with Gompertz-Makeham parameters for transformation.",
                                 "Size of each batch for predictions.", 
                                 "What samples should be tested. Possible values are perturbation or single_cell.",
                                 "Memory to allocate to h2o instance.",
                                 "Output directory where placing the results."),
-                       flag = c(F, F, F, F, F, F, F, F, F))
+                       flag = c(F, F, F, F, F, F, F))
 
 parsed <- parse_args(parser)
 
@@ -44,10 +47,8 @@ parsed <- parse_args(parser)
 ################################################################################
 
 datFile <- parsed$input
-modFile <- parsed$modFile
+modDir <- parsed$modDir
 metDatFile <- parsed$metDat
-respVar <- parsed$respVar
-ageTransParFile <- parsed$ageTransPars
 sizeBatch <- as.numeric(parsed$sizeBatch)
 whatSampsTest <- parsed$whatSampsTest
 mem <- parsed$mem
@@ -56,58 +57,10 @@ outDir <- parsed$outDir
 
 outName <- sprintf("%spred_ages.csv", outDir)
 
-if(!dir.exists(outDir)){
-        dir.create(outDir, recursive = T)
-}
+create_dir_if_not(outDir)
 
 # Functions
 ################################################################################
-
-# Read csv faster
-readCsvFast <- function(f){
-        df <- data.frame(data.table::fread(f))
-        rownames(df) <- df$V1
-        df <- df[, colnames(df) != "V1"]
-        return(df)
-}
-
-# write.csv, but faster
-writeCsvFst <- function(df, file, rowNames = T, colNames = T){
-        if(rowNames){
-                rn <- rownames(df)
-                df <- data.table::data.table(df)
-                df[, V1 := rn]
-                data.table::setcolorder(df, c("V1", setdiff(names(df), "V1")))
-        }else{
-                df <- data.table::data.table(df)
-        }
-        data.table::fwrite(df, file, col.names = colNames)
-}
-
-# Functions for doing age transformation
-test <- function(x){
-        exp(-vals[3]*x-(vals[1]/vals[2])*(exp(vals[2]*x)-1))
-}
-
-inverse = function (f, lower = 0, upper = 110) {
-        function (y) uniroot((function (x) f(x) - y),
-                             lower = lower,
-                             upper = upper)[1]
-}
-agetrans_inverse = function(lower,upper) inverse(test, lower, upper)
-
-# Clips transformed ages to be in a range that can be backtransformed to
-# chronological ages, transforms back to chronological age and returns the 
-# result.
-back2Age <- function(transAge){
-        transAge[transAge > 1] <- 1
-        transAge[transAge < 0] <- .000012
-        transAge2Age <- sapply(transAge,
-                               function(x) agetrans_inverse(0, 110)(x))
-        transAge2Age <- unlist(transAge2Age)
-        names(transAge2Age) <- gsub(".root", "", names(transAge2Age))
-        return(transAge2Age)
-}
 
 # Predict the age given the expression matrix and the model
 predictAge <- function(model,
@@ -134,12 +87,8 @@ predictAge <- function(model,
 
 # Load the data
 ################################################################################
-dat <- readCsvFast(datFile)
-metDat <- readCsvFast(metDatFile)
-
-# Load Gompertz-Makeham parameters
-vals <- readRDS(ageTransParFile)
-vals <- round(vals,6) #Makes the parameters more readable with little loss of accuracy
+dat <- read_table_fast(datFile, row.names = 1)
+metDat <- read_table_fast(metDatFile, row.names = 1)
 
 # Keep only either perturbated samples or single cell samples
 if(whatSampsTest == "perturbation"){
@@ -154,6 +103,18 @@ dat <- dat[make.names(filtSamps), ]
 # Initialize h2o and load model
 conn <- h2o.init(max_mem_size=mem)
 
+# The script looks inside of the selected model directory, and loads
+# the model file that is inside. It is coded like this because h2o gives a
+# numerical number to the model, that each time gets larger. This way the
+# launch script doesn't need to be changed in case we do a refit. If in the
+# directory there are different models, it will load the latest (the one with
+# the larger number).
+modFiles <- list.files(modDir)
+
+modFile <- sprintf("%s/%s",
+                   modDir,
+                   modFiles[length(modFiles)])
+
 mod <- h2o.loadModel(modFile)
 
 # Do predictions
@@ -164,6 +125,7 @@ nBatches <- ceiling(nrow(dat)/sizeBatch)
 
 predVec <- c()
 for(i in 1:nBatches){
+        
         idx1 <- (i - 1) * sizeBatch + 1
         idx2 <- idx1 + sizeBatch - 1
         if(idx2 > nrow(dat)){
@@ -173,14 +135,9 @@ for(i in 1:nBatches){
         predVec <- c(predVec, pred)
 }
 
-if(respVar == "age_trans"){
-        predsDF <- data.frame(specimenID = names(predVec),
-                              trans_age = predVec,
-                              chron_age = back2Age(predVec))
-}else if(respVar == "age_chron"){
-        predsDF <- data.frame(specimenID = names(predVec),
-                              chron_age = predVec)
-}
+
+predsDF <- data.frame(specimenID = names(predVec),
+                      chron_age = predVec)
 
 writeCsvFst(predsDF, file = outName)
 print(sprintf("%s saved in %s.", basename(outName), dirname(outName)))
