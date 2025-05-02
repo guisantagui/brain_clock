@@ -139,7 +139,7 @@ for(i in 1:nBatches){
 predsDF <- data.frame(specimenID = names(predVec),
                       chron_age = predVec)
 
-writeCsvFst(predsDF, file = outName)
+write_table_fast(predsDF, f = outName)
 print(sprintf("%s saved in %s.", basename(outName), dirname(outName)))
 h2o.shutdown(prompt = F)
 

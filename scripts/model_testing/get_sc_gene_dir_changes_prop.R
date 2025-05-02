@@ -1,7 +1,25 @@
+################################################################################
+# Brain clock: obtain proportion of genes of the model that in the scRNAseq    #
+# data follow the same direction as the one indicated by the model's           #
+# coefficient, for each cell type, check for significant enrichment.           #
+################################################################################
+
+if(!require(argparser, quietly = T)){
+        install.packages("argparser", repos='http://cran.us.r-project.org')
+}
 if(!require("ggplot2", quietly = T)){
         install.packages("ggplot2", repos='http://cran.us.r-project.org')
 }
+if(!require(devtools)){
+        install.packages("devtools", repos='http://cran.us.r-project.org')
+}
+if (!require(plotUtils, quietly = T)){
+        devtools::install_github("guisantagui/plotUtils", upgrade = "never")
+}
 library(ggplot2)
+library(argparser)
+library(plotUtils)
+
 # Functions
 ################################################################################
 
@@ -67,14 +85,14 @@ youngThrshld <- as.numeric(parsed$youngThrshld)
 oldThrshld <- as.numeric(parsed$oldThrshld)
 outDir <- parsed$outDir
 
-outDir <- addSlashIfNot(outDir)
-createIfNot(outDir)
+outDir <- add_slash_if_not(outDir)
+create_dir_if_not(outDir)
 
 # Load data
 ################################################################################
-dat <- readCsvFast(datFile)
-metDat <- readCsvFast(metDatFile)
-coefs <- readCsvFast(coefsFile)
+dat <- read_table_fast(datFile, row.names = 1)
+metDat <- read_table_fast(metDatFile, row.names = 1)
+coefs <- read_table_fast(coefsFile, row.names = 1)
 
 # Keep only ageAnno rows and coefs columns.
 metDat <- metDat[metDat$substudy == "ageAnno", ]

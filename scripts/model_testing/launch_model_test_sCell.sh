@@ -24,24 +24,22 @@ conda activate r-4.3.1
 datFile="../../results/preproc/test_no_lincs/merged_counts_log2_quantNorm_noCerebell_onlyAge_svaAdj.csv"
 modDir="../../results/models/first_round_sva/mod_alpha1/"
 metDat="../../results/parsed/merged/merged_metdat.csv"
-modCoefsFile="../../results/models/second_round_model/modFuncsAlpha1_coefs.csv"
+modCoefsFile="../../results/models/first_round_sva/mod_alpha1_coefs.csv"
 #respVar="age_chron"
-ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
+#ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
 batchSize=8000
 whatSampsTest="single_cell"
 mem="50G"
 youngThrshld=30
 oldThrshld=70
-outDir="/home/users/gsantamaria/projects/brain_clock/results/model_test_sCell/modAllGenes_integWAllLincs_and_sc_oAge_chronAge_alph1_onSignGenes/"
+outDir="../../results/model_test_sCell/mod_first_round_sva/"
 
 # Run the simulations
 ########################################################################################################################
 
 Rscript model_test.R $datFile \
-        --modFile $modFile \
+        --modDir $modDir \
         --metDat $metDat \
-        --respVar $respVar \
-        --ageTransPars $ageTransPars \
         --sizeBatch $batchSize \
         --whatSampsTest $whatSampsTest \
         --mem $mem \
@@ -50,7 +48,6 @@ Rscript model_test.R $datFile \
 sCell_stats_in="${outDir}pred_ages.csv"
 
 Rscript model_sCell_stats.R $sCell_stats_in \
-        --respVar $respVar \
         --metDat $metDat \
         --excludeYoung
 
@@ -58,6 +55,7 @@ Rscript get_sc_gene_dir_changes_prop.R $datFile \
         --metDat $metDat \
         --modCoefs $modCoefsFile \
         --youngThrshld $youngThrshld \
-        --oldThrshld $oldThrshld
+        --oldThrshld $oldThrshld \
+        --outDir $outDir
 
 conda deactivate
