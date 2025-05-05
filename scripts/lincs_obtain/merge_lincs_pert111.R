@@ -38,7 +38,7 @@ metDatLincs_NPC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parse
 metDatLincs_NEU_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/lincs_NEU_concat_metDat.csv"
 metDatLincs_MIC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA-PSEN1/parsed_mats/lincs_MICROGLIA-PSEN1_concat_metDat.csv"
 
-counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_counts_log2_quantNorm.csv"
+counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_counts_log2_qnorm.csv"
 metDat_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
 
 outDir <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged_perts/"
@@ -66,6 +66,7 @@ metDat_lincs_NEU <- read_table_fast(metDatLincs_NEU_f, row.names = 1)
 metDat_lincs_MIC <- read_table_fast(metDatLincs_MIC_f, row.names = 1)
 metDat_perts <- read_table_fast(metDatPerts_f, row.names = 1)
 metDat_clin <- read_table_fast(metDat_clin_f, row.names = 1)
+
 
 # Merge LINCS expression and metadata files
 ################################################################################
@@ -146,7 +147,9 @@ print(sprintf("%s saved at %s.",
 # Obtain target distribution from clinical data
 Sys.setenv(OMP_NUM_THREADS = "1")
 
+print(sprintf("Using the training reference extracted from %s...", counts_clin_f))
 target_dist <- normalize.quantiles.determine.target(as.matrix(counts_clin))
+
 
 lincsPerts_quantNorm <- normalize.quantiles.use.target(as.matrix(lincsPerts),
                                                        target_dist)

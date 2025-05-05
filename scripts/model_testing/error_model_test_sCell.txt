@@ -25,10 +25,39 @@ The following objects are masked from ‘package:base’:
     colnames<-, ifelse, is.character, is.factor, is.numeric, log,
     log10, log1p, log2, round, signif, trunc
 
-openjdk version "1.8.0_402"
-OpenJDK Runtime Environment (build 1.8.0_402-b06)
-OpenJDK 64-Bit Server VM (build 25.402-b06, mixed mode)
+openjdk version "1.8.0_432"
+OpenJDK Runtime Environment (build 1.8.0_432-b06)
+OpenJDK 64-Bit Server VM (build 25.432-b06, mixed mode)
 Warning message:
 In h2o.clusterInfo() : 
-Your H2O cluster version is (3 months and 21 days) old. There may be a newer version available.
+Your H2O cluster version is (11 months and 20 days) old. There may be a newer version available.
 Please download and install the latest version from: https://h2o-release.s3.amazonaws.com/h2o/latest_stable.html
+Loading required package: devtools
+Loading required package: usethis
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+Loading required package: devtools
+Loading required package: usethis
+slurmstepd: error: *** JOB 4116970 ON iris-146 CANCELLED AT 2025-05-04T00:48:42 DUE TO TIME LIMIT ***

@@ -113,7 +113,7 @@ cell_types <- unique(metDat$tissue)
 
 sign_match_mat <- data.frame(matrix(nrow = 0, ncol = ncol(dat), dimnames = list(NULL, colnames(dat))))
 pVal_binom_vec <- c()
-n_perm <- 10000
+n_perm <- 1000
 pVal_perm_vec <- c()
 for(i in seq_along(cell_types)){
         cell <- cell_types[i]

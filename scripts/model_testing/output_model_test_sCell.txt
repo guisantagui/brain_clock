@@ -2,19 +2,19 @@
 H2O is not running yet, starting it now...
 
 Note:  In case of errors look at the following log files:
-    /tmp/Rtmp3Vf0al/file310e9d73c624b9/h2o_gsantamaria_started_from_r.out
-    /tmp/Rtmp3Vf0al/file310e9d1bf9bf89/h2o_gsantamaria_started_from_r.err
+    /tmp/RtmpRnc6Lc/file1c51df4875a468/h2o_gsantamaria_started_from_r.out
+    /tmp/RtmpRnc6Lc/file1c51df7f6dc01/h2o_gsantamaria_started_from_r.err
 
 
 Starting H2O JVM and connecting: ... Connection successful!
 
 R is connected to the H2O cluster: 
-    H2O cluster uptime:         2 seconds 39 milliseconds 
+    H2O cluster uptime:         1 seconds 943 milliseconds 
     H2O cluster timezone:       Europe/Luxembourg 
     H2O data parsing timezone:  UTC 
     H2O cluster version:        3.46.0.2 
-    H2O cluster version age:    3 months and 21 days 
-    H2O cluster name:           H2O_started_from_R_gsantamaria_eqw096 
+    H2O cluster version age:    11 months and 20 days 
+    H2O cluster name:           H2O_started_from_R_gsantamaria_xpm802 
     H2O cluster total nodes:    1 
     H2O cluster total memory:   44.44 GB 
     H2O cluster total cores:    25 
@@ -28,4 +28,12 @@ R is connected to the H2O cluster:
 
   |                                                                              |                                                                      |   0%  |                                                                              |======================================================================| 100%
   |                                                                              |                                                                      |   0%  |                                                                              |======================================================================| 100%
-[1] "pred_ages.csv saved in /home/users/gsantamaria/projects/brain_clock/results/model_test_sCell/modAllGenes_integWLincs_and_sc_oAge_chronAge_alph1_onNotSVAedData."
+[1] "pred_ages.csv saved in ../../results/model_test_sCell/mod_first_round_sva_strat_wBSPIext."
+[1] "Running univariate tests for each cell type in pred_ages.csv (mod_first_round_sva_strat_wBSPIext)..."
+[1] "pred_ages_stats.csv saved at ../../results/model_test_sCell/mod_first_round_sva_strat_wBSPIext."
+[1] "Computing: Astrocytes..."
+[1] "Computing: Endothelial..."
+[1] "Computing: Excitatory.neurons..."
+[1] "Computing: Inhibitory.neurons..."
+[1] "Computing: Oligodendrocytes..."
+[1] "Computing: OPCs..."

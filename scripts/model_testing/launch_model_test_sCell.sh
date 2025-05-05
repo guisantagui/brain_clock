@@ -10,9 +10,9 @@
 #SBATCH -c 8
 #SBATCH --time=00-00:40:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/model_test_perts/output_model_test_sCell.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/model_testing/output_model_test_sCell.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/model_test_perts/error_model_test_sCell.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/model_testing/error_model_test_sCell.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p batch
 #SBATCH --qos=normal
@@ -21,10 +21,10 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-datFile="../../results/preproc/test_no_lincs/merged_counts_log2_quantNorm_noCerebell_onlyAge_svaAdj.csv"
-modDir="../../results/models/first_round_sva/mod_alpha1/"
+datFile="../../results/preproc/test_no_lincs/merged_counts_log2_qnorm_noCerebell_onlyAge_svaAdj.csv"
+modDir="../../results/models/first_round_sva_strat_wBSPIext/mod_alpha1/"
 metDat="../../results/parsed/merged/merged_metdat.csv"
-modCoefsFile="../../results/models/first_round_sva/mod_alpha1_coefs.csv"
+modCoefsFile="../../results/models/first_round_sva_strat_wBSPIext/mod_alpha1_coefs.csv"
 #respVar="age_chron"
 #ageTransPars="/home/users/gsantamaria/projects/brain_clock/data/for_model_files/GompertzMakehamParameters.rds"
 batchSize=8000
@@ -32,7 +32,7 @@ whatSampsTest="single_cell"
 mem="50G"
 youngThrshld=30
 oldThrshld=70
-outDir="../../results/model_test_sCell/mod_first_round_sva/"
+outDir="../../results/model_test_sCell/mod_first_round_sva_strat_wBSPIext/"
 
 # Run the simulations
 ########################################################################################################################

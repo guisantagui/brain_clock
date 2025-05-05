@@ -25,10 +25,27 @@ The following objects are masked from ‘package:base’:
     colnames<-, ifelse, is.character, is.factor, is.numeric, log,
     log10, log1p, log2, round, signif, trunc
 
-openjdk version "1.8.0_402"
-OpenJDK Runtime Environment (build 1.8.0_402-b06)
-OpenJDK 64-Bit Server VM (build 25.402-b06, mixed mode)
+openjdk version "1.8.0_432"
+OpenJDK Runtime Environment (build 1.8.0_432-b06)
+OpenJDK 64-Bit Server VM (build 25.432-b06, mixed mode)
 Warning message:
 In h2o.clusterInfo() : 
-Your H2O cluster version is (3 months and 9 days) old. There may be a newer version available.
+Your H2O cluster version is (11 months and 22 days) old. There may be a newer version available.
 Please download and install the latest version from: https://h2o-release.s3.amazonaws.com/h2o/latest_stable.html
+Loading required package: devtools
+Loading required package: usethis
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Error in matrix(nrow = 0, ncol = 5, dimnames = list(NULL, c("perturbation",  : 
+  length of 'dimnames' [2] not equal to array extent
+Calls: data.frame -> matrix
+Execution halted

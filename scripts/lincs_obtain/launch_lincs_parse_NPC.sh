@@ -41,3 +41,4 @@ done
 
 wait
 
+conda deactivate

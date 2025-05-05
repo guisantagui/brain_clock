@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=300GB
 #SBATCH -c 8
-#SBATCH --time=00-01:00:00
+#SBATCH --time=00-03:00:00
 #Define sdout path
 #SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/preprocessing/output_preproc_first.txt
 #Define sderr path
@@ -27,7 +27,7 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-input="../../results/parsed/merged/merged_counts_log2_quantNorm.csv"
+input="../../results/parsed/merged/merged_counts_log2_qnorm.csv"
 metDat="../../results/parsed/merged/merged_metdat.csv"
 filtDF="none" # "none" for not filtering
 nPCs=20

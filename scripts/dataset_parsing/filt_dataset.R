@@ -1,7 +1,6 @@
 ################################################################################
 # Brain clock: intersects merged dataset with LINCS genes, remove lowly        #
-# expressed genes and samples with RIN lower than 6, log2 transform and        #
-# quantile-normalize.                                                          #
+# expressed genes and samples with RIN lower than 6.                           #
 ################################################################################
 if (!require("devtools",quietly = T)){
     install.packages("devtools",
@@ -14,29 +13,6 @@ library(plotUtils)
 
 # Functions
 ################################################################################
-# Finds genes that are expressed at less than an average of 1 per sample 
-# in each one of the ages
-findLowExpGenes_perAge <- function(df, metDat){
-        lowExpGenes_perAge <- list()
-        ageVec <- unique(metDat$ageDeath)
-        ageVec <- ageVec[!is.na(ageVec)]
-        for(age in ageVec){
-                sampsAge <- metDat$specimenID[metDat$ageDeath == age]
-                sampsAge <- sampsAge[!is.na(sampsAge)]
-                sampsAge <- make.names(sampsAge)
-                sampsAge <- sampsAge[sampsAge %in% rownames(df)]
-                df_age <- df[make.names(sampsAge), ]
-                if(length(sampsAge) > 1){
-                        lowExpGenes <- colnames(df_age)[colSums(df_age) < nrow(df_age)]
-                        lowExpGenes_perAge[[paste("age",
-                                                  as.character(age),
-                                                  sep = "_")]] <- lowExpGenes
-                }
-        }
-        lowExpGenes_perAge <- lowExpGenes_perAge[lapply(lowExpGenes_perAge,
-                                                        length) != 0]
-        return(lowExpGenes_perAge)
-}
 
 findLowExpGenes_perAgeBin <- function(df, metDat, bin_width = 5){
     lowExpGenes_perBin <- list()
@@ -84,6 +60,7 @@ recurs_intersect <- function(lst){
 ################################################################################
 counts_f <- "../../results/parsed/merged/merged_counts.csv"
 lincsGeneInfo <- "../../data/perturbation/lincs/lincs_genes.csv"
+overwrite_merged <- T
 metdat_f <- "../../results/parsed/merged/merged_metdat.csv"
 
 propZeroRem <- .8
@@ -92,8 +69,16 @@ outDir <- "../../results/parsed/merged/"
 
 create_dir_if_not(outDir)
 
-outName <- sprintf("%s%s_log2_quantNorm.csv", outDir,
-                   gsub(".csv", "", basename(counts_f)))
+if (overwrite_merged){
+        outNameCounts <- counts_f
+        outNameMetdat <- metdat_f
+}else{
+        outNameCounts <- sprintf("%s%s_filt.csv", outDir,
+                                 gsub(".csv", "", basename(counts_f)))
+        outNameMetdat <- sprintf("%s%s_filt.csv", outDir,
+                                 gsub(".csv", "", basename(metdat_f)))
+}
+
 
 # Load data
 ################################################################################
@@ -102,7 +87,7 @@ counts <- read_table_fast(counts_f, row.names = 1)
 lincs_gi <- read.csv(lincsGeneInfo, row.names = 1)
 metdat <- read_table_fast(metdat_f, row.names = 1)
 
-# Preprocessing
+# Filtering
 ################################################################################
 
 # Keep only genes in LINCS
@@ -120,63 +105,19 @@ lowExp_genes_perAgeBin <- findLowExpGenes_perAgeBin(counts, metdat)
 to_rem <- recurs_intersect(lowExp_genes_perAgeBin)
 counts <- counts[, !colnames(counts) %in% to_rem]
 
+# Filter out samples with low RIN
 counts <- counts[make.names(rownames(counts)) %in% make.names(metdat$specimenID[!is.na(metdat$RIN) & metdat$RIN >= rinFilt]), ]
 
-counts <- t(counts)
-
-# Transform
-counts_log2 <- log2(counts + 1)
-
-
-quant_norm <- function(m, axis = 2, train_means = NULL) {
-    m_class <- class(m)[1]
-    if ((!m_class %in% c("data.frame", "matrix")) | any(dim(m) == 0)){
-        stop("Invalid input object.", call. = FALSE)
-    }
-    if (!axis %in% c(1, 2)){
-        stop("Invalid axis.", call. = FALSE)
-    }
-    if (axis == 1) {
-        m <- t(m)
-    }
-
-    # Sort the matrix
-    m_sort <- apply(m, 2, sort)
-
-    # Calculate row means
-    if (!is.null(train_means)) {
-        means <- train_means
-    } else {
-        means <- rowMeans(m_sort)
-    }
-
-    # Normalize
-    m_norm <- matrix(0, nrow = nrow(m), ncol = ncol(m))
-    for (i in 1:ncol(m)) {
-        m_norm[, i] <- means[rank(m[, i], ties.method = "average")]
-    }
-
-    if (axis == 1) {
-        m_norm <- t(m_norm)
-    }
-
-    dimnames(m_norm) <- dimnames(m)
-    if (m_class == "data.frame") {
-        m_norm <- as.data.frame(m_norm)
-    }
-
-    return(list(norm = m_norm, ref = means))
-}
-
-counts_log2_qNorm <- quant_norm(counts_log2)
-
-means_ref <- counts_log2_qNorm$ref
-counts_log2_qNorm <- counts_log2_qNorm$norm
-
-counts_log2_qNorm <- t(counts_log2_qNorm)
+# keep in the metadata only the samples that were retained in the counts
+metdat <- metdat[match(make.names(rownames(counts)),
+                       make.names(metdat$specimenID)), ]
 
 # Save
-write_table_fast(counts_log2_qNorm, outName)
+################################################################################
 
-outName_ref <- gsub(".csv", "_refMeans_4norm.rds", outName)
-saveRDS(means_ref, file = outName_ref)
+# Processed counts file
+write_table_fast(counts, outNameCounts)
+
+# Filtered metadata file
+write_table_fast(metdat,
+                 f = outNameMetdat)

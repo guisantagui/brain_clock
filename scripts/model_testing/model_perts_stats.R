@@ -23,11 +23,15 @@ if (!require(dplyr, quietly = T)){
 if (!require(ggrepel, quietly = T)){
         install.packages("ggrepel", repos='http://cran.us.r-project.org')
 }
+if (!require(rlang, quietly = T)){
+        install.packages("rlang", repos='http://cran.us.r-project.org')
+}
 library(ggpubr)
 library(plotUtils)
 library(argparser)
 library(dplyr)
 library(ggrepel)
+library(rlang)
 
 # Terminal argument parser
 ################################################################################
@@ -62,10 +66,17 @@ plotPerts <- function(pertDF, what_stats, cell_type, alph = 0.05,
                       topN = NULL,
                       comp_vec = NULL,
                       point_size = 0.1,
-                      rem_dose = F){
-        
+                      rem_dose = F,
+                      y_var = "log2FC"){
+        if (y_var == "log2FC"){
+                y_var <- "chron_age_logFC"
+        }else if (y_var == "delta"){
+                y_var <- "chron_age_delta"
+        }else{
+                stop(wprintf("%s is not an allowed y variable", y_var), call. = F)
+        }
         pertDF <- pertDF[pertDF$cell_type == cell_type, ]
-        pertDF <- pertDF[order(pertDF$chron_age_logFC), ]
+        pertDF <- pertDF[order(pertDF[, y_var]), ]
         pertDF$perturbation <- factor(pertDF$perturbation,
                                       levels = pertDF$perturbation)
         pertDF$sign <- rep(NA, nrow(pertDF))
@@ -77,28 +88,28 @@ plotPerts <- function(pertDF, what_stats, cell_type, alph = 0.05,
         }
         pertDF$sign[is.na(pertDF$sign)] <- "not significant"
         if (!is.null(thrshld_labs_low) &!is.null(thrshld_labs_high)){
-                boolLab <- pertDF$sign == "significant" & (pertDF$chron_age_logFC < thrshld_labs_low | pertDF$chron_age_logFC > thrshld_labs_high)
+                boolLab <- pertDF$sign == "significant" & (pertDF[, y_var] < thrshld_labs_low | pertDF[, y_var] > thrshld_labs_high)
         }
         if(!is.null(topN) & is.null(comp_vec)){
                 pertDF_sign <- pertDF[pertDF$sign == "significant", ]
-                topN_sign_idxs <-  setNames(order(abs(pertDF_sign$chron_age_logFC),
+                topN_sign_idxs <-  setNames(order(abs(pertDF_sign[, y_var]),
                                                   decreasing = T)[1:topN],
-                                            pertDF_sign$perturbation[order(abs(pertDF_sign$chron_age_logFC),
+                                            pertDF_sign$perturbation[order(abs(pertDF_sign[, y_var]),
                                                                            decreasing = T)[1:topN]])
                 boolLab <- rep(F, nrow(pertDF))
                 boolLab[pertDF$perturbation %in% names(topN_sign_idxs)] <- T
         }else if (!is.null(comp_vec) & is.null(topN)){c
-                pertDF_sign <- pertDF[pertDF$sign == "significant" & pertDF$chron_age_logFC < 0, ]
+                pertDF_sign <- pertDF[pertDF$sign == "significant" & pertDF[, y_var] < 0, ]
                 pert_names_val <- pertDF_sign$perturbation[grepl(paste(tolower(comp_vec),
                                                                        collapse = "|"),
                                                                  tolower(pertDF_sign$perturbation))] 
                 boolLab <- rep(F, nrow(pertDF))
                 boolLab[pertDF$perturbation %in% pert_names_val] <- T
         }else if (!is.null(comp_vec) & !is.null(topN)){
-                pertDF_sign <- pertDF[pertDF$sign == "significant" & pertDF$chron_age_logFC < 0, ]
-                topN_sign_idxs <-  setNames(order(abs(pertDF_sign$chron_age_logFC),
+                pertDF_sign <- pertDF[pertDF$sign == "significant" & pertDF[, y_var] < 0, ]
+                topN_sign_idxs <-  setNames(order(abs(pertDF_sign[, y_var]),
                                                   decreasing = T),
-                                            pertDF_sign$perturbation[order(abs(pertDF_sign$chron_age_logFC),
+                                            pertDF_sign$perturbation[order(abs(pertDF_sign[, y_var]),
                                                                            decreasing = T)])
                 pert_names_val <- topN_sign_idxs[grepl(paste(tolower(comp_vec),
                                                              collapse = "|"),
@@ -112,18 +123,23 @@ plotPerts <- function(pertDF, what_stats, cell_type, alph = 0.05,
         if (rem_dose){
                 pertDF$labs <- gsub("\\_.*", "", pertDF$labs)
         }
+        if (y_var == "chron_age_logFC"){
+                y_label <- "predicted age log2 fold change"
+        }else if(y_var == "chron_age_delta"){
+                y_label <- "Delta predicted age (years)"
+        }
         pertDF$labs <- gsub("_", " ", pertDF$labs)
         pertDF <- pertDF %>% arrange(sign)
         plt <- ggplot(pertDF,
                       mapping = aes(x = perturbation,
-                                    y = chron_age_logFC,
+                                    y = !!sym(y_var),
                                     col = sign,
                                     label = labs)) +
                 geom_hline(yintercept = 0) +
                 geom_point(size = point_size) +
                 scale_color_manual(values = c("red", "darkgreen")) +
                 geom_text_repel(max.overlaps = 100) +
-                labs(x = "perturbations", y = "predicted age log2 fold change") +
+                labs(x = "perturbations", y = y_label) +
                 scale_x_discrete(expand = expansion(mult = c(0.01, 0.01))) +
                 theme(title = element_text(size = 20),
                       axis.text.y = element_text(size=15),
@@ -165,13 +181,14 @@ metDat$pert_cell <- paste(metDat$perturbation,
                           metDat$tissue, sep = "_")
 
 pert_stats_DF <- data.frame(matrix(nrow = 0,
-                                   ncol = 5,
+                                   ncol = 6,
                                    dimnames = list(NULL,
                                                    c("perturbation",
                                                      "cell_type",
                                                      "chron_age_wilcox_pVal",
                                                      "chron_age_tTest_pVal",
-                                                     "chron_age_logFC"))))
+                                                     "chron_age_logFC",
+                                                     "chron_age_delta"))))
 
 pb = txtProgressBar(min = 0, max = length(uniqPerts), initial = 0, style = 3)
 for(i in seq_along(uniqPerts)){
@@ -197,11 +214,14 @@ for(i in seq_along(uniqPerts)){
 
                         chronAge_logFC <- log2(median(perts_expr_chronAgeVec)/median(perts_ctrl_chronAgeVec))
 
+                        chronAge_delta <- median(perts_expr_chronAgeVec) - median(perts_ctrl_chronAgeVec)
+
                         toBindDF <- data.frame(perturbation = p,
                                                cell_type = cTyp,
                                                chron_age_wilcox_pVal = chronAge_wilcox_pVal,
                                                chron_age_tTest_pVal = chronAge_tTest_pVal,
-                                               chron_age_logFC = chronAge_logFC)
+                                               chron_age_logFC = chronAge_logFC,
+                                               chron_age_delta = chronAge_delta)
                         pert_stats_DF <- rbind.data.frame(pert_stats_DF, toBindDF)
                 }
         }
@@ -223,9 +243,34 @@ print(sprintf("%s saved at %s", basename(outName), dirname(outName)))
 
 # Plot transcriptional age log2FC per perturbation
 ################################################################################
-npc_neu_pertPlt_vert <- ggarrange(plotPerts(pert_stats_DF, "t_test", "NPC", topN = 10),
-                                  plotPerts(pert_stats_DF, "t_test", "NEU", topN = 10),
-                                  common.legend = T, legend = "bottom", nrow = 2)
+npc_neu_pertPlt_vert <- ggarrange(plotPerts(pert_stats_DF,
+                                            "t_test",
+                                            "NPC",
+                                            topN = 10),
+                                  plotPerts(pert_stats_DF,
+                                            "t_test",
+                                            "NEU",
+                                            topN = 10),
+                                  common.legend = T,
+                                  legend = "bottom",
+                                  nrow = 2)
 
 ggsave(filename = sprintf("%s/pert_stats_plot.pdf", dirname(pertFile)),
        plot = npc_neu_pertPlt_vert, height = 12, width = 6)
+
+npc_neu_pertPlt_delta_vert <- ggarrange(plotPerts(pert_stats_DF,
+                                                  "t_test",
+                                                  "NPC",
+                                                  topN = 10,
+                                                  y_var = "delta"),
+                                        plotPerts(pert_stats_DF,
+                                                  "t_test",
+                                                  "NEU",
+                                                  topN = 10,
+                                                  y_var = "delta"),
+                                        common.legend = T,
+                                        legend = "bottom",
+                                        nrow = 2)
+
+ggsave(filename = sprintf("%s/pert_stats_plot_delta.pdf", dirname(pertFile)),
+       plot = npc_neu_pertPlt_delta_vert, height = 12, width = 6)
