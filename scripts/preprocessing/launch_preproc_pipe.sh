@@ -27,15 +27,16 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-input="../../results/parsed/merged/merged_counts_log2_qnorm.csv"
+input="../../results/parsed/merged/merged_counts.csv"
 metDat="../../results/parsed/merged/merged_metdat.csv"
 filtDF="none" # "none" for not filtering
 nPCs=20
+trainProp=0.66
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
 excludeSubstudy="none" # "none" for not excluding any substudy before the preprocessing
 nSV_method="leek"
-outDir="../../results/preproc/test_no_lincs/"
+outDir="../../results/preproc/first_round/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then
@@ -54,17 +55,22 @@ else
     filtInput="$input"
 fi
 
+# Normalize the dataset using as reference the entire input dataset: this normalization is only
+# for visualizing the data in PCAs.
+Rscript normalize_dataset.R $filtInput
+norm_input="${filtInput/.csv/_log2_qnorm.csv}"
+
 # Do PCA of preprocessed file and plot it.
-Rscript bigPCA_exe.R $filtInput --nPCs $nPCs --stand --outDir $outDir
-pcaFile=$(echo "$filtInput" | sed 's/.csv$//')
+Rscript bigPCA_exe.R $norm_input --nPCs $nPCs --stand --outDir $outDir
+pcaFile=$(echo "$norm_input" | sed 's/.csv$//')
 pcaFile=$(basename $pcaFile)
 pcaFile="${outDir}${pcaFile}_pca.rds"
 Rscript plotBigPCA_exe.R $pcaFile --metDat $metDat --x PC1 --y PC2 --outDir $outDir
 
 # Remove cerebellum samples and run PCA again
-Rscript tpms_tissOutFilt.R $filtInput --metDat $metDat --tiss2rem "$tiss2rem" --outTag $outTag --outDir $outDir
+Rscript tpms_tissOutFilt.R $norm_input --metDat $metDat --tiss2rem "$tiss2rem" --outTag $outTag --outDir $outDir
 
-noCerebFile=$(echo "$filtInput" | sed 's/.csv$//')
+noCerebFile=$(echo "$norm_input" | sed 's/.csv$//')
 noCerebFile=$(basename $noCerebFile)
 noCerebFile="${outDir}${noCerebFile}_${outTag}.csv"
 
@@ -72,6 +78,28 @@ Rscript bigPCA_exe.R $noCerebFile --nPCs $nPCs --stand --outDir $outDir
 pcaNoCerebFile=$(echo "$noCerebFile" | sed 's/.csv$//')
 pcaNoCerebFile="${pcaNoCerebFile}_pca.rds"
 Rscript plotBigPCA_exe.R $pcaNoCerebFile --metDat $metDat --x PC1 --y PC2 --outDir $outDir
+
+# Do train-test splitting here, as we will use it for normalization to prevent
+# data leakage, and we have already removed cerebellum samples.
+train_test_outdir=$(echo $(dirname $input))
+Rscript train_test_split.R $noCerebFile \
+    --metDat $metDat \
+    --trainProp $trainProp \
+    --exclude_substudy "brainSeq_pI" \
+    --outdir $train_test_outdir
+
+# Normalize raw data again, but now using only train set as reference. Will
+# overwrite normalized file in $train_test_outdir
+Rscript normalize_dataset.R $filtInput  \
+    --train_test "${train_test_outdir}/train_test.csv"
+
+# Remove cerebellum samples again. Will overwrite the noCerebell file previously
+# generated in $outDir
+Rscript tpms_tissOutFilt.R $norm_input \
+    --metDat $metDat \
+    --tiss2rem "$tiss2rem" \
+    --outTag $outTag \
+    --outDir $outDir
 
 # Create objects necessary for batch removal steps
 Rscript create_batchRemObjkts.R $noCerebFile --metDat $metDat --outDir $outDir

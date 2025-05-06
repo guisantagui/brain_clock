@@ -56,6 +56,8 @@ else
     filtInput="$input"
 fi
 
+# Normalize the dataset using as reference the training samples defined
+# during the first fitting round
 Rscript normalize_dataset.R $filtInput --train_test $train_test
 norm_input="${filtInput/.csv/_log2_qnorm.csv}"
 

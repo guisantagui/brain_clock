@@ -51,14 +51,14 @@ exprsn_f <- "../../results/preproc/test_no_lincs/merged_counts_log2_qnorm_noCere
 metdat_f <- "../../results/parsed/merged/merged_metdat.csv"
 trainProp <- .66
 exclude_substudy <- "brainSeq_pI"
-exclude_tissue <- "cerebellum,cerebellar hemisphere"
+#exclude_tissue <- "cerebellum,cerebellar hemisphere"
 outdir <- "../../results/parsed/merged/"
 
 exprsn_f <- parsed$input
 metdat_f <- parsed$metDat
 trainProp <- as.numeric(parsed$trainProp)
 exclude_substudy <- parsed$exclude_substudy
-outdir <- parsed$outDir
+outdir <- add_slash_if_not(parsed$outdir)
 
 create_dir_if_not(outdir)
 
@@ -71,12 +71,12 @@ exprsn <- read_table_fast(exprsn_f, row.names = 1)
 ################################################################################
 
 # If indicated, remove out samples from a given tissue before doing split.
-if (!is.null(exclude_tissue)){
-        exclude_tissue <- strsplit(exclude_tissue, split = ",")[[1]]
-        boolVec <- !metdat$tissue[match(rownames(exprsn),
-                                        make.names(metdat$specimenID))] %in% exclude_tissue
-        exprsn <- exprsn[boolVec, ]
-}
+#if (!is.null(exclude_tissue)){
+#        exclude_tissue <- strsplit(exclude_tissue, split = ",")[[1]]
+#        boolVec <- !metdat$tissue[match(rownames(exprsn),
+#                                        make.names(metdat$specimenID))] %in% exclude_tissue
+#        exprsn <- exprsn[boolVec, ]
+#}
 
 # Filter metadata to include only what is in the expression matrix (we filtered
 # out cerebellum samples)
@@ -137,3 +137,4 @@ train_test_df <- train_test_df %>%
         ))
 
 write_table_fast(train_test_df, f = sprintf("%strain_test.csv", outdir))
+print(sprintf("train_test.csv saved at %s", outdir))

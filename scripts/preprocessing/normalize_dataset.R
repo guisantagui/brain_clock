@@ -70,8 +70,7 @@ counts_log2 <- log2(counts + 1)
 # Normalize
 ################################################################################
 
-
-if (!is.null(train_test_f) && file.exists(train_test_f)){
+if (!is.na(train_test_f) && file.exists(train_test_f)){
         print("Performing quantile-normalization on the train set and applying it to the rest of the samples...")
         train_test <- read_table_fast(train_test_f, row.names = 1)
         # Split in train and test
@@ -115,6 +114,7 @@ if (!is.null(train_test_f) && file.exists(train_test_f)){
 
 # Normalized matrix
 write_table_fast(counts_log2_qNorm, out_name)
+print(sprintf("%s saved at %s", basename(out_name), dirname(out_name)))
 
 # Train target vector
 train_target_f <- sprintf("%s/train_target.rds", dirname(counts_f))
