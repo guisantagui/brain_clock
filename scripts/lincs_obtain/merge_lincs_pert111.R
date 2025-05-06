@@ -38,8 +38,10 @@ metDatLincs_NPC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parse
 metDatLincs_NEU_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/NEU/parsed_mats/lincs_NEU_concat_metDat.csv"
 metDatLincs_MIC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA-PSEN1/parsed_mats/lincs_MICROGLIA-PSEN1_concat_metDat.csv"
 
-counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_counts_log2_qnorm.csv"
+#counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_counts_log2_qnorm.csv"
+counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/preproc/test_no_lincs/merged_counts_log2_qnorm_noCerebell_onlyAge_svaAdj.csv"
 metDat_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
+train_test_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/train_test.csv"
 
 outDir <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged_perts/"
 create_dir_if_not(outDir)
@@ -147,14 +149,23 @@ print(sprintf("%s saved at %s.",
 # Obtain target distribution from clinical data
 Sys.setenv(OMP_NUM_THREADS = "1")
 
-print(sprintf("Using the training reference extracted from %s...", counts_clin_f))
-target_dist <- normalize.quantiles.determine.target(as.matrix(counts_clin))
+if (!is.null(train_test_f) && file.exists(train_test_f)){
+        train_test <- read_table_fast(train_test_f, row.names = 1)
+        train_samps <- make.names(train_test$specimenID[train_test$train_test_split == "train"])
+        counts_clin_train <- counts_clin[make.names(rownames(counts_clin)) %in% train_samps, ]
+        target_dist <- normalize.quantiles.determine.target(t(counts_clin_train))
+}else{
+        print(sprintf("Using the training reference extracted from all the samples in %s...", counts_clin_f))
+        target_dist <- normalize.quantiles.determine.target(t(counts_clin))
+}
 
 
+lincsPerts <- t(lincsPerts)
 lincsPerts_quantNorm <- normalize.quantiles.use.target(as.matrix(lincsPerts),
                                                        target_dist)
 # Reassign the dimnames, as normalize.quantiles removes them
 dimnames(lincsPerts_quantNorm) <- dimnames(lincsPerts)
+lincsPerts_quantNorm <- t(lincsPerts_quantNorm)
 outPath_quantNorm <- gsub(".csv", "_quantNorm.csv", outPath)
 write_table_fast(lincsPerts_quantNorm, f = outPath_quantNorm)
 print(sprintf("%s saved at %s.",

@@ -15,8 +15,35 @@ if (!require("devtools",quietly = T)){
 if (!require(plotUtils, quietly = T)){
         devtools::install_github("guisantagui/plotUtils", upgrade = "never")
 }
+if(!require(argparser, quietly = T)){
+        install.packages("argparser", repos='http://cran.us.r-project.org')
+}
+library(argparser)
 library(dplyr)
 library(plotUtils)
+
+# Terminal argument parser
+################################################################################
+parser <- arg_parser("Divide the samples in train and test, stratifying by individualID.")
+
+parser <- add_argument(parser = parser,
+                       arg = c("input",
+                               "--metDat",
+                               "--trainProp",
+                               "--exclude_substudy",
+                               "--outdir"),
+                       help = c("Expression dataframe that is to be split.",
+                                "Metadata file",
+                                "Proportion of controls to be kept in training set.",
+                                "Substudy to be excluded from the train-test split, with the purpose of doing an additional validation with an entire substudy.",
+                                "Output directory."),
+                       flag = c(F,
+                                F,
+                                F,
+                                F,
+                                F))
+
+parsed <- parse_args(parser)
 
 # Directory stuff
 ################################################################################
@@ -24,7 +51,14 @@ exprsn_f <- "../../results/preproc/test_no_lincs/merged_counts_log2_qnorm_noCere
 metdat_f <- "../../results/parsed/merged/merged_metdat.csv"
 trainProp <- .66
 exclude_substudy <- "brainSeq_pI"
+exclude_tissue <- "cerebellum,cerebellar hemisphere"
 outdir <- "../../results/parsed/merged/"
+
+exprsn_f <- parsed$input
+metdat_f <- parsed$metDat
+trainProp <- as.numeric(parsed$trainProp)
+exclude_substudy <- parsed$exclude_substudy
+outdir <- parsed$outDir
 
 create_dir_if_not(outdir)
 
@@ -35,6 +69,14 @@ exprsn <- read_table_fast(exprsn_f, row.names = 1)
 
 # Do train/test split
 ################################################################################
+
+# If indicated, remove out samples from a given tissue before doing split.
+if (!is.null(exclude_tissue)){
+        exclude_tissue <- strsplit(exclude_tissue, split = ",")[[1]]
+        boolVec <- !metdat$tissue[match(rownames(exprsn),
+                                        make.names(metdat$specimenID))] %in% exclude_tissue
+        exprsn <- exprsn[boolVec, ]
+}
 
 # Filter metadata to include only what is in the expression matrix (we filtered
 # out cerebellum samples)

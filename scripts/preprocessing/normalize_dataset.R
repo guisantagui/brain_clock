@@ -18,14 +18,44 @@ if(!require("plotUtils", quietly = T)){
 }
 library(plotUtils)
 library(preprocessCore)
+library(argparser)
+
+# Terminal argument parser
+################################################################################
+parser <- arg_parser("Log2-transform and quantile-normalize the data, optionally being able to provide a train_test dataframe so only training set is used for determining the distribution.")
+
+parser <- add_argument(parser = parser,
+                       arg = "input",
+                       help = "Counts matrix.",
+                       flag = F)
+
+parser <- add_argument(parser = parser,
+                       arg = "--train_test",
+                       help = "A file of train/test assignments. Generated with train_test_split.R",
+                       flag = F,
+                       default = NULL)
+
+#parser <- add_argument(parser = parser,
+#                       arg = "--outDir",
+#                       help = "The output directory.",
+#                       flag = F)
+
+parsed <- parse_args(parser)
 
 # Directory stuff
 ################################################################################
 counts_f <- "../../results/parsed/merged/merged_counts.csv"
-#train_test_f <- "../../results/parsed/merged/train_test.csv"
-train_test_f <- NULL
+train_test_f <- "../../results/parsed/merged/train_test.csv"
+#train_test_f <- NULL
 
+counts_f <- parsed$input
+train_test_f <- parsed$train_test
+#outDir <- parsed$outDir
+
+#create_dir_if_not(outDir)
+#out_name <- gsub(".csv", "_log2_qnorm.csv", basename(counts_f))
 out_name <- gsub(".csv", "_log2_qnorm.csv", counts_f)
+#out_name <- sprintf("%s%s", outDir, out_name)
 
 # Load data
 ################################################################################

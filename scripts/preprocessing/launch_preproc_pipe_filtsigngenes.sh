@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=svaFastAll
+#SBATCH --job-name=preproc_secnd
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
@@ -10,34 +10,34 @@
 #SBATCH -c 8
 #SBATCH --time=07-00:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_svaFastAll_lincsLndmrk.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/preprocessing/output_preproc_secnd.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_svaFastAll_lincsLndmrk.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/preprocessing/error_preproc_secnd.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p bigmem
 #SBATCH --qos=long
 
 conda activate r-4.3.1
 
-# This version of the preproc pipeline uses as input the quantNorm(log(counts + 1)) of the integrated dataset,
-# consisting of synapse.org datasets, TBI, 111 compilation of GEO obtained by Sascha and Javier for brain specific
-# cell types and brain cell samples of LINCS1000 (level 3), and SC data from ageAnno. This dataset has been already
-# preprocessed in terms of removal of samples with low RIN, variables, samples with high proportion of zeros, etc. 
+# This version of the preproc pipeline uses as input the clinical dataset counts,
+# consisting of synapse.org datasets, TBI, brainSeq Phase 1 and 2 and SC data from ageAnno. This dataset has been already
+# filtered in terms of removal of samples with low RIN, variables, samples with high proportion of zeros, etc. 
 # Previous to doing sva filters the genes to keep only the ones that had non-zero coefficients in the fitting of
 # the GLM with all the genes using chronological age as response variable.
 
 # Variables for the pipeline
 ########################################################################################################################
 
-input="../../data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
-metDat="../../data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
-filtDF="../../results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age/modFuncsAlpha1_coefs.csv" # "none" for not filtering
+input="../../results/parsed/merged/merged_counts.csv"
+metDat="../../results/parsed/merged/merged_metdat.csv"
+filtDF="../../results/models/first_round_sva_strat_wBSPIext/mod_alpha1_coefs.csv" # "none" for not filtering
 nPCs=20
+train_test="../../brain_clock/results/parsed/merged/train_test.csv"
 tiss2rem="cerebellum,cerebellar hemisphere"
 outTag="noCerebell"
 excludeSubstudy="none" # "none" for not excluding any substudy before the preprocessing
 nSV_method="leek"
-outDir="../../results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/"
+outDir="../../results/preproc/second_round/"
 
 # Create output directory if it doesn't exist
 if [ ! -d "$outDir" ]; then
@@ -56,17 +56,20 @@ else
     filtInput="$input"
 fi
 
+Rscript normalize_dataset.R $filtInput --train_test $train_test
+norm_input="${filtInput/.csv/_log2_qnorm.csv}"
+
 # Do PCA of data.csv file and plot it.
-Rscript bigPCA_exe.R $filtInput --nPCs $nPCs --stand --outDir $outDir
-pcaFile=$(echo "$filtInput" | sed 's/.csv$//')
+Rscript bigPCA_exe.R $norm_input --nPCs $nPCs --stand --outDir $outDir
+pcaFile=$(echo "$norm_input" | sed 's/.csv$//')
 pcaFile=$(basename $pcaFile)
 pcaFile="${outDir}${pcaFile}_pca.rds"
 Rscript plotBigPCA_exe.R $pcaFile --metDat $metDat --x PC1 --y PC2 --outDir $outDir
 
 # Remove cerebellum samples and run PCA again
-Rscript tpms_tissOutFilt.R $filtInput --metDat $metDat --tiss2rem "$tiss2rem" --outTag $outTag --outDir $outDir
+Rscript tpms_tissOutFilt.R $norm_input --metDat $metDat --tiss2rem "$tiss2rem" --outTag $outTag --outDir $outDir
 
-noCerebFile=$(echo "$filtInput" | sed 's/.csv$//')
+noCerebFile=$(echo "$norm_input" | sed 's/.csv$//')
 noCerebFile=$(basename $noCerebFile)
 noCerebFile="${outDir}${noCerebFile}_${outTag}.csv"
 

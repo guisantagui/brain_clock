@@ -241,7 +241,7 @@ write_table_fast(pert_stats_DF, f = outName)
 
 print(sprintf("%s saved at %s", basename(outName), dirname(outName)))
 
-# Plot transcriptional age log2FC per perturbation
+# Plot transcriptional age log2FC and delta per perturbation
 ################################################################################
 npc_neu_pertPlt_vert <- ggarrange(plotPerts(pert_stats_DF,
                                             "t_test",

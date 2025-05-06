@@ -23,9 +23,9 @@ conda activate r-4.3.1
 
 # Variables for the pipeline
 ########################################################################################################################
-datFile="../../results/parsed/merged_perts/merged_perts_counts_quantNorm.csv"
+datFile="../../results/parsed/merged_perts/merged_perts_counts_qnorm.csv"
 #modDir="../../results/models/first_round_sva_strat_wBSPIext_qnormAllTogether/mod_alpha1/"
-modDir="../../results/models/first_round_sva_strat_wBSPIext/mod_alpha1/"
+modDir="../../results/models/secnd_round_sva_strat_wBSPIext/mod_alpha1/"
 metDat="../../results/parsed/merged_perts/merged_perts_metdat.csv"
 respVar="age_chron"
 #ageTransPars="../../data/for_model_files/GompertzMakehamParameters.rds"
@@ -36,7 +36,7 @@ batchSize=4000
 whatSampsTest="perturbation"
 mem="50G"
 #outDir="../../results/model_test_perts/mod_first_round_sva_strat_wBSPIext_qnormAllTogether/"
-outDir="../../results/model_test_perts/mod_first_round_sva_strat_wBSPIext/"
+outDir="../../results/model_test_perts/mod_secnd_round_sva_strat_wBSPIext/"
 
 # Run the simulations
 ########################################################################################################################
