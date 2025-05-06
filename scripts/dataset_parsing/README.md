@@ -1,4 +1,4 @@
-# Dataset curation and parsing
+# Clinical data curation and parsing
 This directory contains the code used for parsing the different datasets into unified metadata and quantile-normalized counts matrices. This step in the pipeline was rather manual: we inspected the metadata provided by each substudy, categorized the samples as controls based on the available variables, and homogenized the units and categories included across the different datasets.
 This manual parsing can be divided in the following steps:
 
@@ -100,20 +100,3 @@ Here, samples are divided in train and test subsets in a 2:1 proportion. This st
 - `train_test_split.R` ensures that the partition is stratified by donor (`individualID`), ensuring that samples coming from the same donor won't be at the same time in training and testing and therefore, preventing data leakage.
 #### 1.8.4 Normalize merged clinical dataset
 Here, genes dominated by zero counts are filtered out from `merged_counts.csv`, then all the genes not available in LINCS L1000 are removed, and the dataset is log2 transformed and quantile normalized (`quant_norm(log2(counts + 1))`). Quantile normalization step is applied first only in train data, then the reference distribution is applied to the rest of the dataset. The output dataset is generated in `./results/parsed/merged/`, and it's named `merged_counts_log2_qnorm.csv`. This is the dataset that will be the startpoint of our pre-processing pipeline.
-
-## 2. Curation and parsing of perturbation data
-### 2.1 Parsing the compilation of perturbations
-Here, the datasets we compiled from several sources, which are indicated in the Supplementary Table 5 of our manuscript. This step is performed by `parse_pert_compilation.R`, and requires the following files, all of them already included in `./data/perturbation/`:
-- `111_sascha_complete_counts_df.csv`
-- `javier_111_counts.csv`
-- `Sascha_metadata.csv`
-- `javier_metadata.csv`
-
-The output files are `counts_111.csv` and `metDat_111.csv`, both saved at `./results/parsed/`.
-
-### 2.2 Extraction and parsing LINCS L1000 data
-Here, expression data and metadata corresponding to brain cell types was extracted from `cp_predicted_RNAseq_profiles.gctx` and `ctl_predicted_RNAseq_profiles.gctx` files, and were concatenated into a single expression and metadata files. This step is performed `generate_lincs_matrix.sh`, and requires the following files to work both of which can be dowloaded [here](https://lincs-dcic.s3.amazonaws.com/LINCS-data-2020/RNA-seq/cp_predicted_RNAseq_profiles.gctx) and [here](https://lincs-dcic.s3.amazonaws.com/LINCS-data-2020/RNA-seq/ctl_predicted_RNAseq_profiles.gctx), respectively.
-- `cp_predicted_RNAseq_profiles.gctx`.
-
-### 2.3 Merge LINCS L1000 and compilation of perturbation data
-Here, the two perturbation datasets were combined and quantile-normalized, using the distribution of `merged_counts_log2_quantNorm.csv` as a target for normalization.

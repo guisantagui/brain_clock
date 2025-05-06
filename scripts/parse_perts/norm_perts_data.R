@@ -14,12 +14,35 @@ if (!require("preprocessCore", quietly = T)){
 }
 library(preprocessCore)
 library(plotUtils)
+library(argparser)
+
+# Terminal argument parser
+################################################################################
+parser <- arg_parser("Quantile-normalize perturbation data, optionally being able to provide a train_test dataframe so only training set is used for determining the distribution.")
+
+parser <- add_argument(parser = parser,
+                       arg = c("input", "--clin_dat"),
+                       help = c("Perturbation expression matrix.",
+                                "Clinical data expression matrix, to be used as a reference."),
+                       flag = c(F, F))
+
+parser <- add_argument(parser = parser,
+                       arg = "--train_test",
+                       help = "A file of train/test assignments. Generated with train_test_split.R",
+                       flag = F,
+                       default = NULL)
+
+parsed <- parse_args(parser)
 
 # Directory stuff
 ################################################################################
 perts_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged_perts/merged_perts_counts.csv"
 clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/preproc/second_round/merged_counts_mod_alpha1_coefs_log2_qnorm_noCerebell_onlyAge_svaAdj.csv"
 train_test_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/train_test.csv"
+
+perts_f <- parsed$input
+clin_f <- parsed$clin_dat
+train_test_f <- parsed$train-test
 
 # Load data
 ################################################################################

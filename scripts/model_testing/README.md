@@ -5,13 +5,14 @@ This directory contains the scripts for testing the model on:
 The analyses performed in this module consist in:
 1. Computing the transcriptional age.
 2. Assessing the significance of transcriptional age shifts.
-For the commands needed for performing the analyses relative to this step are the following:
+The commands needed for performing the analyses relative to this step are the following:
 ```bash
 # For perturbation data
 sbatch launch_model_test_perts.sh
 # For single cell data
 sbatch launch_model_test_sCell.sh
 ```
+
 ## Outputs
 Results will be saved in `./results/model_testing/perts/` and `./results/model_testing/sCell/` for perturbations and single cell, respectively, and will consist on:
 - `pred_ages.csv`: a CSV file with the transcriptional ages of each one of the samples.
