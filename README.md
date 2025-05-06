@@ -1,18 +1,23 @@
 # Brain clock: Code for the analyses performed in the study "A machine-learning approach identifies rejuvenating interventions in the human brain"
 
 This repository contains the scripts used for preprocessing the transcriptomics data we used to train and test the transcriptomic brain clock that was used in our study "A machine-learning approach identifies rejuvenating interventions in the human brain", as well as to perform the rest of the analyses described in the study. This trained model underlies our platform for detection of brain-rejuvenating interventions, [`brainAgeShiftR`](https://gitlab.lcsb.uni.lu/CBG/brainAgeShiftR). The scripts within the `scripts` directory are structured into the following modules:
-- Dataset parsing ([`scripts/dataset_parsing`](scripts/dataset_parsing))
+- Clinical data curation and parsing ([`scripts/parse_clinc`](scripts/parse_clinc))
 - Preprocessing ([`scripts/preprocessing`](scripts/preprocessing)).
 - Model training ([`scripts/model_training`](scripts/model_training)).
+- Perturbatio data parsing [`scripts/parse_perts`](scripts/parse_perts).
 - Model testing ([`scripts/model_testing`](scripts/model_testing)).
 - Mice analyses ([`scripts/mice_analyses`](scripts/mice_analyses)).
 - Functional enrichment ([`scripts/func_enrich`](scripts/func_enrich)).
 
 ## Preprocessing the data and training the model
 To train the model and reproduce our analyses, the following steps need to be performed
-### 1. Dataset parsing
-In this module, bulk RNA-seq datasets from several sources and their metadata were manually curated in order to homogenize the gene nomenclature and metadata variables, and were merged into the `data.csv` and `metadata.csv` files the next steps use as input.  
-
+### 1. Clinical data curation and parsing
+In this module, brain bulk RNA-seq datasets from several sources and their metadata were manually curated in order to homogenize the gene nomenclature and metadata variables, and were merged into the `merged_counts.csv` and `merged_metdat.csv` files the next step use as input. To perform this step run the following commands:
+```bash
+cd scripts/parse_clinc
+sbatch dataset_parsing.sh
+cd ../..
+```
 ### 2. First training round
 As mentioned in the **Methods** section of our paper, the training of the model was performed in two steps:
 1. A first round performed on a preprocessed matrix with all the genes intersected with the integrated datasets.
@@ -34,7 +39,7 @@ cd scripts/model_training
 sbatch fitModel_first_round.sh
 cd ../..
 ```
-Results will be saved in `results/models/first_round_model/`. They consist on plots of the performance metrics of the model, plots and `TXT` files of the comparisons between samples originating from healthy individuals and from individuals affected by neurodegeneration, the `h2o` model object, stored in `results/models/first_round_model/modFuncsAlpha1/`, and the coefficient file `modFuncsAlpha1_coefs.csv`. The latter will be used to filter genes during the 2nd round of preprocessing.
+Results will be saved in `results/models/first_round/`. They consist on plots of the performance metrics of the model, plots and `TXT` files of the comparisons between samples originating from healthy individuals and from individuals affected by neurodegeneration, the `h2o` model object, stored in `results/models/first_round/mod_alpha1/`, and the coefficient file `mod_alpha1_coefs.csv`. The latter will be used to filter genes during the 2nd round of preprocessing.
 ### 3. Second training round
 #### 3.1 Preprocessing
 Run:
@@ -51,7 +56,7 @@ cd scripts/model_training
 sbatch fitModel_second_round.sh
 cd ../..
 ```
-Results of model training will be saved in `results/models/second_round_model/`.
+Results of model training will be saved in `results/models/second_round/`.
 ### 4. Model testing
 Here we will use the final model to compute the transcriptional ages of:
 - The perturbation data.
