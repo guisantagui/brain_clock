@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #Usage # sbatch [this script]
 #Name of the job
-#SBATCH --job-name=fitModel_first_sva_strat
+#SBATCH --job-name=fitModel_first
 #SBATCH -N 1
 #SBATCH --mail-user=guillem.santamaria@uni.lu
 #SBATCH --mail-type=begin,end,fail
@@ -10,9 +10,9 @@
 #SBATCH -c 8
 #SBATCH --time=00-00:30:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/model_training/output_model_training_first_sva_strat.txt
+#SBATCH --output=output_model_training_first.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/model_training/error_model_training_first_sva_strat.txt
+#SBATCH --error=error_model_training_first.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p batch
 #SBATCH --qos=normal
