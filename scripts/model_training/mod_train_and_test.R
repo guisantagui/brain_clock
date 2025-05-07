@@ -611,17 +611,17 @@ mod_cvMetrics_plt <- ggplot(data = plotDF, mapping = aes(x = metric, y = value))
 ggsave(filename = sprintf("%smod_alpha%s_cvMetrics.pdf", outDir, alph),
        plot = mod_cvMetrics_plt)
 
-# Predict the age in the both test datasets (1:3 leave out and external dataset i.e.
+# Predict the age in the both test datasets (1/3 leave out and external dataset i.e.
 # BrainSeq Phase I)
 predicted <- predictAge(model, t(dat_ctrls_test))
 if (ext_substudy != "none" & ext_substudy %in% metDat$substudy){
         predicted_extn <- predictAge(model, t(dat_extrn))
 }
 
-# 1:3 leave out test dataset
+# 1/3 leave out test dataset
 testAges <- ageVec[match(names(predicted), names(ageVec))]
 metrics_chronAge <- getMetrics(testAges, predicted)
-print("Metrics for 1:3 leave out test dataset on chronological ages:")
+print("Metrics for 1/3 held-out test dataset on chronological ages:")
 print(metrics_chronAge)
 write.csv(metrics_chronAge,
           file = sprintf("%smetricsTest_chronAge_alpha%s.csv",
@@ -808,8 +808,8 @@ if (ext_substudy == "none" | !ext_substudy %in% metDat$substudy){
                                             "r2_test_external"),
                                  labels = c("r2_training" = "train set",
                                             "r2_cv" = "cross-validation",
-                                            "r2_test_leave_out" = "test set (1:3 leave-out)",
-                                            "r2_test_external" = "test set (external)")) +
+                                            "r2_test_leave_out" = "internal test set (1/3 split)",
+                                            "r2_test_external" = "external validation set")) +
                 ylab(expression(R^2)) +
                 ylim(c(floor(min(dfr2$value * 10)) / 10, 1)) + 
                 theme(axis.text.y = element_text(size=15),
@@ -851,8 +851,8 @@ if (ext_substudy == "none" | !ext_substudy %in% metDat$substudy){
                                             "mae_test_external"),
                                  labels = c("mae_training" = "train set",
                                             "mae_cv" = "cross-validation",
-                                            "mae_test" = "test set (1:3 leave-out)",
-                                            "mae_test" = "test set (external)")) +
+                                            "mae_test_leave_out" = "internal test set (1/3 split)",
+                                            "mae_test_external" = "external validation set")) +
                 ylab("MAE") +
                 ylim(c(floor(min(dfmae$value)), ceiling(max(dfmae$value)))) + 
                 theme(axis.text.y = element_text(size=15),
