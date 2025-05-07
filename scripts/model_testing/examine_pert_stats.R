@@ -4,6 +4,9 @@
 # compounds per cell type and what are their mechanisms of action.             #
 ################################################################################
 
+if(!require(ggplot2)){
+        install.packages("ggplot2", repos='http://cran.us.r-project.org')
+}
 if(!require(devtools)){
         install.packages("devtools", repos='http://cran.us.r-project.org')
 }
@@ -12,6 +15,7 @@ if (!require(plotUtils, quietly = T)){
 }
 library(plotUtils)
 library(argparser)
+library(ggplot2)
 
 # Functions
 ################################################################################
@@ -23,6 +27,8 @@ do_moa_ORA <- function(drug_vec, drug_metDat){
         drug_metDat_noTarg <- drug_metDat[!drug_metDat$pert_name %in% drug_vec, ]
         moa_pVals <- c()
         drugs_in_moa <- c()
+        n_in_moa <- c()
+        enrich_ratios <- c()
         for(moa in moas){
                 #moa <- moas[1]
                 drugs_moa <- drug_metDat$moa[match(drug_vec,
@@ -41,12 +47,58 @@ do_moa_ORA <- function(drug_vec, drug_metDat){
                 cont <- matrix(c(drugs_moa, drugs_all_moa, drugs_not_moa, drugs_all_not_moa), nrow = 2)
                 fish_pVal <- fisher.test(cont, alternative = "greater")$p.value
                 moa_pVals <- c(moa_pVals, fish_pVal)
+                n_in_moa <- c(n_in_moa, drugs_moa)
+                enrich_ratios <- c(enrich_ratios, drugs_moa/sum(drug_metDat$moa == moa))
         }
         outDF <- data.frame(moa = moas,
                             pVal = moa_pVals,
                             pAdj = p.adjust(moa_pVals, method = "BH"),
+                            n_enrich = n_in_moa,
+                            enrich_ratio = enrich_ratios,
                             drugs_in_moa = drugs_in_moa)
         return(outDF)
+}
+
+moa_ora_dotplot <- function(oraDF, alph,
+                            sort_by, topN = NULL){
+        plot_df <- oraDF[oraDF$pAdj <= alph, ]
+        if (sort_by == "enrich_ratio"){
+                plot_df <- plot_df[order(plot_df$enrich_ratio, decreasing = F), ]
+        }else if (sort_by == "p_value"){
+                plot_df <- plot_df[order(plot_df$pAdj, decreasing = T), ]
+        }
+        if (!is.null(topN) && topN < nrow(plot_df)){
+                plot_df <- plot_df[1:topN, ]
+        }
+        plot_df$moa <- factor(plot_df$moa, levels = plot_df$moa)
+        plt <- ggplot(plot_df, mapping = aes(x = moa, y = enrich_ratio,
+                                             color = pAdj,
+                                             size = n_enrich)) +
+                geom_point() + 
+                scale_size(range = c(2, 10)) +
+                labs(x = "MOA", y = "enrichment ratio",
+                     color = "FDR",
+                     size = "n. of drugs in MOA") +
+                scale_color_gradient(low = "red", high = "blue") +
+                guides(fill = guide_colorbar(reverse = TRUE)) +
+                coord_flip() +
+                scale_y_continuous(expand = expansion(mult = c(0.2, 0.2))) +
+                theme(axis.text.y = element_text(size=15),
+                      axis.text.x = element_text(size=15),
+                      axis.title.x = element_text(size=18),
+                      axis.title.y = element_blank(),
+                      title = element_text(size=20),
+                      panel.background = element_blank(),
+                      panel.grid.major = element_line(colour = "gray"),
+                      panel.grid.minor = element_blank(),
+                      legend.text = element_text(size=12),
+                      legend.title = element_text(size=13),
+                      axis.line = element_line(colour = "black"),
+                      axis.line.y = element_line(colour = "black"),
+                      panel.border = element_rect(colour = "black",
+                                                  fill=NA,
+                                                  linewidth = 1))
+        return(plt)
 }
 
 # Terminal argument parser
@@ -71,10 +123,10 @@ parsed <- parse_args(parser)
 
 # Directory stuff
 ################################################################################
-pert_stats_f <- "/home/users/gsantamaria/projects/brain_clock/results/model_test_perts/mod_first_round_sva_strat_wBSPIext/pred_ages_stats.csv"
+pert_stats_f <- "../../results/model_test_perts/pred_ages_stats.csv"
 alph <- 0.05
 what_test <- "t.test"
-lincs_drgs_f <- "/home/users/gsantamaria/projects/brain_clock/data/perturbation/lincs/LINCS_small_molecules.tsv"
+lincs_drgs_f <- "../../data/perturbation/lincs/LINCS_small_molecules.tsv"
 
 pert_stats_f <- parsed$input
 alph <- as.numeric(parsed$alpha)
@@ -107,13 +159,25 @@ uniq_cTypes <- unique(pert_stats_sign$cell_type)
 for(i in seq_along(uniq_cTypes)){
         cTyp <- uniq_cTypes[i]
         pert_stats_sign_cTyp <- pert_stats_sign[pert_stats_sign$cell_type == cTyp, ]
-        uniq_perts_cell <- gsub("\\_.*", "", pert_stats_sign_cTyp$perturbation)
+        # Order by delta to get unique perts ranked by rejuvenating potential
+        pert_stats_sign_cTyp <- pert_stats_sign_cTyp[order(pert_stats_sign_cTyp$chron_age_delta), ]
+        uniq_perts_cell <- unique(gsub("\\_.*", "", pert_stats_sign_cTyp$perturbation))
+        mean_delta <- sapply(uniq_perts_cell,
+                             function(x) mean(pert_stats_sign_cTyp$chron_age_delta[grep(x,
+                                                                                   pert_stats_sign_cTyp$perturbation)]))
         drug_df <- data.frame(drug = uniq_perts_cell,
                               target = lincs_drgs$target[match(uniq_perts_cell, lincs_drgs$pert_name)],
                               moa = lincs_drgs$moa[match(uniq_perts_cell, lincs_drgs$pert_name)],
                               smiles = lincs_drgs$canonical_smiles[match(uniq_perts_cell, lincs_drgs$pert_name)],
-                              inchi_key = lincs_drgs$inchi_key[match(uniq_perts_cell, lincs_drgs$pert_name)])
+                              inchi_key = lincs_drgs$inchi_key[match(uniq_perts_cell, lincs_drgs$pert_name)],
+                              mean_delta = mean_delta)
         write_table_fast(drug_df, f = sprintf("%s/%s_drugs.csv", outDir, cTyp))
+        print(sprintf("%s_drugs.csv saved at %s", cTyp, outDir))
         moa_ora_cell <- do_moa_ORA(drug_df$drug, lincs_drgs)
         write_table_fast(moa_ora_cell, f = sprintf("%s/%s_drugs_ora.csv", outDir, cTyp))
+        print(sprintf("%s_drugs_ora.csv saved at %s", cTyp, outDir))
+        moa_plot_by_ratio <- moa_ora_dotplot(moa_ora_cell, 0.05, sort_by = "enrich_ratio", topN = 20)
+        moa_plot_by_pVal <- moa_ora_dotplot(moa_ora_cell, 0.05, sort_by = "p_value", topN = 20)
+        ggsave(filename = sprintf("%s/%s_moa_ora_ratio.pdf", outDir, cTyp),  plot = moa_plot_by_ratio, width = 9, height = 8)
+        ggsave(filename = sprintf("%s/%s_moa_ora_pval.pdf", outDir, cTyp),  plot = moa_plot_by_pVal, width = 9, height = 8)
 }

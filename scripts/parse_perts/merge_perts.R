@@ -127,11 +127,6 @@ print(sprintf("%s saved at %s.",
               basename(outPath),
               dirname(outPath)))
 
-write_table_fast(lincs, f = lincsOut)
-print(sprintf("%s saved at %s.",
-              basename(lincsOut),
-              dirname(lincsOut)))
-
 write_table_fast(metDat_lincsPert, f = outPathMetDat)
 print(sprintf("%s saved at %s.",
               basename(outPathMetDat),

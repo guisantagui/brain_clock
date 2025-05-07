@@ -42,7 +42,7 @@ train_test_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/mer
 
 perts_f <- parsed$input
 clin_f <- parsed$clin_dat
-train_test_f <- parsed$train-test
+train_test_f <- parsed$train_test
 
 # Load data
 ################################################################################

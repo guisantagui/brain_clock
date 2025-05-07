@@ -79,14 +79,14 @@ parsed <- parse_args(parser)
 # Directory stuff
 ################################################################################
 
-dataFile <- "../../results/preproc/test_no_lincs/merged_counts_log2_qnorm_noCerebell_onlyAge_svaAdj.csv"
+dataFile <- "../../results/preproc/second_round/merged_counts_mod_alpha1_coefs_log2_qnorm_noCerebell_onlyAge_svaAdj.csv"
 metDatFile <- "../../results/parsed/merged/merged_metdat.csv"
 trainSetFile <- "../../results/parsed/merged/train_test.csv"
 alph <- 1
 mem <- "24G"
 preFiltGenes <- "none"
 braakThrshld <- 4
-outDir <- "../../results/models/first_round_sva_strat_wBSPIext_qnormAllTogether/"
+outDir <- "../../results/models/secnd_round/"
 CVfolds <- 10
 stratifiedCV <- T
 lambdaFlag <- T
@@ -885,19 +885,24 @@ check_metrics_by_var <- function(exp,
         for (i in seq_along(uniqVar)){
                 v <- uniqVar[i]
                 mdV <- metdat[metdat[, variable] == v, ]
-                exp_v <- exp[rownames(exp) %in% make.names(mdV$specimenID), ]
-                preds_v <- predictAge(mod, t(exp_v))
-                reals_v <- metdat$ageDeath[match(names(preds_v),
-                                           make.names(metdat$specimenID))]
-                metrics_v <- getMetrics(reals_v, preds_v)
-                plt_v <- plot_real_vs_pred(reals_v, preds_v, resids = F)
-                plot_list[[v]] <- plt_v
-                metrics_v[[variable]] <- v
-                metrics_df <- rbind.data.frame(metrics_df, metrics_v)
-                if (!is.null(save_plots) & dir.exists(save_plots)){
-                        plt_dir <- sprintf("%spredsvsreal_by_%s/", save_plots, variable)
-                        create_dir_if_not(plt_dir)
-                        ggsave(sprintf("%s%s_predsvsreal.pdf", plt_dir, v))
+                if (nrow(mdV) >= 2){
+                        print(sprintf("Checking %s...", v))
+                        exp_v <- exp[rownames(exp) %in% make.names(mdV$specimenID), ]
+                        preds_v <- predictAge(mod, t(exp_v))
+                        reals_v <- metdat$ageDeath[match(names(preds_v),
+                                                   make.names(metdat$specimenID))]
+                        metrics_v <- getMetrics(reals_v, preds_v)
+                        plt_v <- plot_real_vs_pred(reals_v, preds_v, resids = F)
+                        plot_list[[v]] <- plt_v
+                        metrics_v[[variable]] <- v
+                        metrics_df <- rbind.data.frame(metrics_df, metrics_v)
+                        if (!is.null(save_plots) & dir.exists(save_plots)){
+                                plt_dir <- sprintf("%spredsvsreal_by_%s/", save_plots, variable)
+                                create_dir_if_not(plt_dir)
+                                ggsave(sprintf("%s%s_predsvsreal.pdf", plt_dir, v))
+                        }
+                }else{
+                        print(sprintf("Not enough samples for %s. Skipping...", v))
                 }
         }
         out <- list(plots = plot_list,

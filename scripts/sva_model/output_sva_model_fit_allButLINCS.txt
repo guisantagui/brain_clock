@@ -1,3 +1,0 @@
-[1] "Loading the data..."
-[1] "Fitting the model..."
-[1] "sva_pred_mod.rds saved at /home/users/gsantamaria/projects/brain_clock/results/svaMod/all_signChron"

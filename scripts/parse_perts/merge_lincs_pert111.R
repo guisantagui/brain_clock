@@ -46,8 +46,8 @@ train_test_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/mer
 outDir <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged_perts/"
 create_dir_if_not(outDir)
 
-outPath <- sprintf("%smerged_perts_counts.csv", outDir)
-lincsOut <- sprintf("%slincs_counts.csv", outDir)
+outPath <- sprintf("%smerged_perts_exprsn.csv", outDir)
+lincsOut <- sprintf("%slincs_exprsn.csv", outDir)
 
 outPathMetDat <- sprintf("%smerged_perts_metdat.csv", outDir)
 

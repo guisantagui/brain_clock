@@ -83,3 +83,11 @@ sbatch launch_model_test_sCell.sh
 cd ../..
 ```
 Results will be saved in `results/model_testing/`.
+
+### 6. Functional enrichment
+Run a functional enrichment on the genes selected by the final model (second round) using NEAT. Run:
+```bash
+cd scripts/func_enrich
+sbatch launch_NEAT_enrich_modGenes.sh
+cd ../..
+```

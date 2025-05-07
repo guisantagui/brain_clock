@@ -20,33 +20,6 @@ library(ggplot2)
 library(argparser)
 library(plotUtils)
 
-# Functions
-################################################################################
-
-# Add a / if it's not at the end of a directory string
-addSlashIfNot <- function(pth){
-        lastChar <- substr(pth, nchar(pth), nchar(pth))
-        if(lastChar != "/"){
-                pth <- paste0(pth, "/")
-        }
-        return(pth)
-}
-
-# Create directory if it doesn't exist
-createIfNot <- function(pth){
-        if(!dir.exists(pth)){
-                dir.create(pth, recursive = T)
-        }
-}
-
-# Read csv faster
-readCsvFast <- function(f){
-        df <- data.frame(data.table::fread(f))
-        rownames(df) <- df$V1
-        df <- df[, colnames(df) != "V1"]
-        return(df)
-}
-
 # Terminal argument parser
 ################################################################################
 parser <- arg_parser("Do statistic analysis of the proportion of age predictor genes from the model that follow the same direction of change in the single cell data.")
@@ -70,13 +43,12 @@ parsed <- parse_args(parser)
 
 # Directory stuff
 ################################################################################
-#datFile <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC.csv"
-#datFile <- "/home/users/gsantamaria/projects/brain_clock/results/preprocessing/integ_LINCSSamps_wSC_all_sva_fast_allLINCSBrain_filtSignChron/combined_counts_wTBI_wPert111_wSC_log2_quantNorm_preproc_wLINCS_NPC_NEU_MIC_modFuncsAlpha1_coefs_noCerebell_onlyAge_svaAdj.csv"
-#metDatFile <- "/home/users/gsantamaria/projects/brain_clock/data/int_database_w111/combined_metDat_wTBI_wPert111_wSC_wLINCS_NPC_NEU_MIC.csv"
-#coefsFile <- "/home/users/gsantamaria/projects/brain_clock/results/models/modAllGenes_ingegWAllLincsBrain_and_sc_sva_chron_age_onSignGenes/modFuncsAlpha1_coefs.csv"
-#outDir <- "/home/users/gsantamaria/projects/brain_clock/results/model_test_sCell/modAllGenes_integWAllLincs_and_sc_oAge_chronAge_alph1_onSignGenes"
-#youngThrshld <- 30
-#ldThrshld <- 70
+datFile <- "../../results/preproc/second_round/merged_counts_mod_alpha1_coefs_log2_qnorm_noCerebell_onlyAge_svaAdj.csv"
+metDatFile <- "../../results/parsed/merged/merged_metdat.csv"
+coefsFile <- "../../results/models/secnd_round/mod_alpha1_coefs.csv"
+outDir <- "../../results/model_test_sCell/"
+youngThrshld <- 30
+oldThrshld <- 70
 
 datFile <- parsed$input
 metDatFile <- parsed$metDat
@@ -113,8 +85,9 @@ cell_types <- unique(metDat$tissue)
 
 sign_match_mat <- data.frame(matrix(nrow = 0, ncol = ncol(dat), dimnames = list(NULL, colnames(dat))))
 pVal_binom_vec <- c()
-n_perm <- 1000
+n_perm <- 10000
 pVal_perm_vec <- c()
+
 for(i in seq_along(cell_types)){
         cell <- cell_types[i]
         print(sprintf("Computing: %s...", cell))
@@ -131,6 +104,7 @@ for(i in seq_along(cell_types)){
                 }
                 cell_sign_match <- c(cell_sign_match, gene_match)
         }
+        pb <- txtProgressBar(min = 0, max = n_perm, style = 3)
         perm_match_prop_cell_vec <- c()
         for (p in 1:n_perm){
                 dat_perm <- dat_all[, sample(colnames(dat_all), size = ncol(dat))]
@@ -153,7 +127,9 @@ for(i in seq_along(cell_types)){
                 perm_match_prop_cell <- sum(cell_sign_match_perm)/length(cell_sign_match_perm)
                 perm_match_prop_cell_vec <- c(perm_match_prop_cell_vec,
                                               perm_match_prop_cell)
+                setTxtProgressBar(pb, p)
         }
+        close(pb)
         real_cell_sign_match_prop <- sum(cell_sign_match)/length(cell_sign_match)
         pVal_perm <- sum(perm_match_prop_cell_vec >= real_cell_sign_match_prop)/n_perm
         cell_sign_match <- data.frame(matrix(cell_sign_match,
