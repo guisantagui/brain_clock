@@ -97,9 +97,7 @@ agesBins <- agesBins[20:100 %% 5 == 0]
 
 inTrain <- c()
 inTest <- c()
-seed <- 111
 seed <- 222 # This seed is the good one for now, but the resulting model doesnt_work great on mice data
-seed <- 555 # Try out this one
 for(i in 1:(length(agesBins) - 1)){
         intLow <- agesBins[i]
         intHigh <- agesBins[i + 1]

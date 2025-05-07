@@ -164,7 +164,8 @@ for(i in seq_along(cell_types)){
         cell <- cell_types[i]
         cell_sign_vec <- sign_match_mat[cell,
                                         !colnames(sign_match_mat) %in% c("prop_same_dir",
-                                                                         "pVal_binom")]
+                                                                         "pVal_binom",
+                                                                         "pVal_perm")]
         cell_sign_vec <- unlist(as.vector(cell_sign_vec))
         toBind <- data.frame(cell_type = rep(cell, length(cell_sign_vec)),
                              gene = names(cell_sign_vec),

@@ -48,16 +48,27 @@ parsed <- parse_args(parser)
 # Fit a linear model using desired response variable to age_death
 # (actual chronological age) andn return the model, the pValue and 
 # a plot.
-getLMod <- function(df, respVar, cellType = NULL){
+getLMod <- function(df, respVar, cellType = NULL, p_adj = F,
+                    adj_method = "BH", n_comps = 1){
         form <- as.formula(sprintf("%s ~ age_death", respVar))
         lMod <- lm(form, df)
         fStat <- summary(lMod)$f
         pVal <- pf(fStat[1], fStat[2], fStat[3], lower.tail = F)
-        eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2*","~~italic(p-value)~"="~pVal, 
-                         list(a = format(unname(coef(lMod)[1]), digits = 2),
-                              b = format(unname(coef(lMod)[2]), digits = 2),
-                              r2 = format(summary(lMod)$r.squared, digits = 3),
-                              pVal = format(unname(pVal), digits = 3)))
+        if (p_adj){
+                p.adjust(pVal, method = adj_method, n = n_comps)
+                eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2*","~~italic(adj.~p)~"="~pVal, 
+                                 list(a = format(unname(coef(lMod)[1]), digits = 2),
+                                      b = format(unname(coef(lMod)[2]), digits = 2),
+                                      r2 = format(summary(lMod)$r.squared, digits = 3),
+                                      pVal = format(unname(pVal), digits = 3)))
+        }else{
+                eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2*","~~italic(p-value)~"="~pVal, 
+                                 list(a = format(unname(coef(lMod)[1]), digits = 2),
+                                      b = format(unname(coef(lMod)[2]), digits = 2),
+                                      r2 = format(summary(lMod)$r.squared, digits = 3),
+                                      pVal = format(unname(pVal), digits = 3)))
+        }
+        
         eq <- as.character(as.expression(eq))
         eq <- paste0("atop(",
                      gsub("(x) * \",\"", "(x),", eq, fixed = T),
@@ -66,8 +77,7 @@ getLMod <- function(df, respVar, cellType = NULL){
                 geom_point() +
                 geom_smooth(method = "lm", se = F) +
                 labs(x = "chronological age",
-                     y = sprintf("predicted %s",
-                                 gsub("_", " ", respVar))) +
+                     y = "predicted age") +
                 theme(title = element_text(size = 20),
                       axis.text.y = element_text(size=15),
                       axis.text.x = element_text(size=15),
@@ -85,7 +95,7 @@ getLMod <- function(df, respVar, cellType = NULL){
         xRange <- layer_scales(plt)$x$range$range
         yRange <- layer_scales(plt)$y$range$range
         if(lMod$coefficients[2] > 0.3){
-                xPos <- min(xRange) + round((abs(min(xRange)) + 40) * .8)
+                xPos <- min(xRange) + round((abs(min(xRange)) + 20) * .8)
                 yPos <- max(yRange) - round(abs(max(yRange)) * .1)
         }else if(lMod$coefficients[2] <= 0.3 & lMod$coefficients[2] > 0){
                 xPos <- round(mean(xRange))
@@ -100,15 +110,20 @@ getLMod <- function(df, respVar, cellType = NULL){
                            label = eq, parse = TRUE)
         if(!is.null(cellType)){
                 plt <- plt +
-                        ggtitle(cellType)
+                        ggtitle(gsub(".", " ", cellType, fixed = T))
         }
         out <- list(lMod = lMod, pVal = pVal, plot = plt)
         return(out)
 }
 
+
 # Run young vs old univariate test and plot it
 run_young_vs_old <- function(df, respVar, youngThrshld = 30, oldThrshld = 70,
-                             test = "wilcox.test", cell){
+                             test = "wilcox.test", cell,
+                             show_p_value = F,
+                             p_adj = F,
+                             adj_method = "BH",
+                             n_comps = 1){
         df$group <- rep(NA, nrow(df))
         df$group[df$age_death <= youngThrshld] <- "young"
         df$group[df$age_death >= oldThrshld] <- "old"
@@ -121,16 +136,22 @@ run_young_vs_old <- function(df, respVar, youngThrshld = 30, oldThrshld = 70,
                 pVal <- t.test(df[df$group == "young", respVar],
                                df[df$group == "old", respVar])$p.val
         }
-        
-        statSymbDF <- data.frame(value = c(1, 0.1, 0.05, 0.01, 0.001),
+        if (p_adj){
+                pVal <- p.adjust(pVal, method = adj_method, n = n_comps)
+        }
+        if (show_p_value){
+                annotation_text <- format.pval(pVal, digits = 3, eps = .001)
+        }else{
+                statSymbDF <- data.frame(value = c(1, 0.1, 0.05, 0.01, 0.001),
                                  symbol = c("ns", ".", "*", "**", "***"))
-        symb <- statSymbDF$symbol[max(which(pVal <= statSymbDF$value))]
+                annotation_text <- statSymbDF$symbol[max(which(pVal <= statSymbDF$value))]
+        }
         maxY <- max(df[, respVar])
         maxY <- maxY + max(maxY) * .025
         signifDF <- data.frame(x = 1,
                                xend = 2,
                                y = maxY,
-                               annotation = symb)
+                               annotation = annotation_text)
         plt <- ggplot(df, aes(x = group, y = !!sym(respVar))) +
                 geom_boxplot(outlier.shape = NA) +
                 geom_jitter() +
@@ -152,7 +173,6 @@ run_young_vs_old <- function(df, respVar, youngThrshld = 30, oldThrshld = 70,
                                 yend=y,
                                 fill = NULL,
                                 annotation = annotation,
-                                #group = group,
                                 col = NULL))
         out <- list(p_value = pVal, plot = plt)
         return(out)
@@ -206,12 +226,16 @@ cellStatsDF <- data.frame(matrix(nrow = 0,
                                                    "pVal_chron_age",
                                                    "young_vs_old_chron_pVal"))))
 univPltChrnLst <- list()
+univPltChrnLst_wPVal <- list()
 for(cell in uniqCells){
         df_cell <- data.frame(specimenID = metDat$specimenID[metDat$tissue == cell],
                               age_death = metDat$ageDeath[metDat$tissue == cell])
         df_cell$chron_age <- preds$chron_age[match(make.names(df_cell$specimenID),
                                                    make.names(preds$specimenID))]
-        lm_chron <- getLMod(df_cell, "chron_age", cellType = cell)
+        lm_chron <- getLMod(df_cell, "chron_age", cellType = cell,
+                            p_adj = F,
+                            adj_method = "BH",
+                            n_comps = length(uniqCells))
         plotChronName <- sprintf("%slm_chron_age_vs_pred_chron_age_%s.pdf",
                                  outDir,
                                  cell)
@@ -226,13 +250,30 @@ for(cell in uniqCells){
                                        cell = cell,
                                        test = "t.test",
                                        youngThrshld = 30,
-                                       oldThrshld = 70)
+                                       oldThrshld = 70,
+                                       p_adj = F,
+                                       adj_method = "BH",
+                                       n_comps = length(uniqCells))
         toBind$young_vs_old_chron_pVal <- univ_chron$p_value
         cellStatsDF <- rbind.data.frame(cellStatsDF, toBind)
         univPltChrnLst[[cell]] <- univ_chron$plot
+
+        univ_chron_wPVal <- run_young_vs_old(df_cell,
+                                             "chron_age",
+                                             cell = cell,
+                                             test = "t.test",
+                                             youngThrshld = 30,
+                                             oldThrshld = 70,
+                                             show_p_value = T,
+                                             p_adj = F,
+                                             adj_method = "BH",
+                                             n_comps = length(uniqCells))
+        univPltChrnLst_wPVal[[cell]] <- univ_chron_wPVal$plot
 }
 cellStatsDF$pAdj_chron_age <- p.adjust(cellStatsDF$pVal_chron_age,
                                        method = "BH")
+cellStatsDF$young_vs_old_chron_pAdj <- p.adjust(cellStatsDF$young_vs_old_chron_pVal,
+                                                method = "BH")
 
 # Arrange plots and save
 ################################################################################
@@ -244,13 +285,22 @@ chronPlotsComb <- ggarrange(plotlist = pltChronLst,
 plotChronAllCellsName <- sprintf("%slm_chron_age_vs_pred_chron_age_allCellTyp.pdf",
                                  outDir)
 ggsave(plotChronAllCellsName, chronPlotsComb, height = 8, width = 12)
-        
+
+# Save univariate plots with symbols        
 chronUnivPlotsComb <- ggarrange(plotlist = univPltChrnLst,
                                 ncol = ncolCombPlot,
                                 nrow = nrowCombPlot)
 chronUnivPlotsName <- sprintf("%suniv_chron_age_young_vs_old.pdf",
                               outDir)
 ggsave(chronUnivPlotsName, chronUnivPlotsComb, height = 10, width = 10)
+
+# Save univariate plots with actual p-values
+chronUnivPlotsComb_wPVals <- ggarrange(plotlist = univPltChrnLst_wPVal,
+                                       ncol = ncolCombPlot,
+                                       nrow = nrowCombPlot)
+chronUnivPlotsName_wPVals <- sprintf("%suniv_chron_age_young_vs_old_wPVals.pdf",
+                                     outDir)
+ggsave(chronUnivPlotsName_wPVals, chronUnivPlotsComb_wPVals, height = 10, width = 10)
 
 write_table_fast(cellStatsDF, f = outName)
 print(sprintf("%s saved at %s.", basename(outName), dirname(outName)))
