@@ -19,6 +19,9 @@ if(!require(argparser, quietly = T)){
 if(!require(rstatix, quietly = T)){
         install.packages("rstatix", repos='http://cran.us.r-project.org')
 }
+if(!require(patchwork, quietly = T)){
+        install.packages("patchwork", repos='http://cran.us.r-project.org')
+}
 if(!require(limma, quietly = T)) BiocManager::install("limma", update = F)
 if(!require("h2o", quietly = T)){
         install.packages("h2o",
@@ -27,9 +30,12 @@ if(!require("h2o", quietly = T)){
 }
 if(!require("ggplot2")) install.packages("ggplot2",
                                          repos='https://pbil.univ-lyon1.fr/CRAN/')
+if(!require("rlang")) install.packages("rlang",
+                                       repos='https://pbil.univ-lyon1.fr/CRAN/')
 if(!require("ggpubr")) install.packages("ggpubr",
                                         repos='https://pbil.univ-lyon1.fr/CRAN/')
 
+library(rlang)
 library(argparser)
 library(rstatix)
 library(limma)
@@ -38,6 +44,7 @@ library(ggplot2)
 library(ggpubr)
 library(plotUtils)
 library(dplyr)
+library(patchwork)
 
 # Terminal argument parser
 ################################################################################
@@ -368,6 +375,143 @@ plot_real_vs_pred <- function(real, pred, resids = T){
         return (plt)
 }
 
+# Obtain chronological age barplots per a partition defined by x
+# (substudy, sex, tissue...)
+do_ages_bxplt <- function(mdat, x, jit_size = 1){
+        plt <- ggplot(data = mdat, mapping = aes(x = !!sym(x),
+                                                 y = ageDeath)) +
+                geom_boxplot(outliers = F) +
+                geom_jitter(size = jit_size) +
+                ylab("chronological age") +
+                theme(axis.text.y = element_text(size=15),
+                      axis.text.x = element_text(size=15, angle = 90, hjust = 1),
+                      axis.title.y = element_text(size=18),
+                      axis.title.x = element_blank(),
+                      panel.background = element_rect(fill = "#eeeeee", colour = NA),
+                      panel.grid.major = element_line(colour = "gray"), 
+                      panel.grid.minor = element_blank(),
+                      axis.line = element_line(colour = "black"),
+                      axis.line.y = element_line(colour = "black"),
+                      panel.border = element_rect(colour = "black",
+                                                  fill=NA, linewidth = 1))
+        if (x == "susbtudy"){
+                plt <- plt +
+                        scale_x_discrete(limits = c("brainSeq_pII",
+                                                    "GTEx",
+                                                    "LBP",
+                                                    "Mayo",
+                                                    "MSBB",
+                                                    "ROSMAP",
+                                                    "TBI"),
+                                         labels = c("brainSeq_pII" = "BrainSeq Ph. 2",
+                                                    "GTEx" = "GTEx",
+                                                    "LBP" = "LBP",
+                                                    "Mayo" = "Mayo",
+                                                    "MSBB" = "MSBB",
+                                                    "ROSMAP" = "ROSMAP",
+                                                    "TBI" = "TBI"))
+        }
+        return (plt)
+}
+
+# Obtain barplots of a determined performance metric by a subsetting
+# according to x
+get_met_bplot <- function(metric_df, metric, x){
+        metric_df <- metric_df[metric_df$metric == metric, ]
+        if (metric == "r2"){
+                y_lab = expression(R^2)
+        }else if (metric == "pearson2"){
+                y_lab = expression(Pearson^2)
+        }else if (metric %in% c("mae", "mse", "rmse", "mape")){
+                y_lab <- toupper(metric)
+        }
+        plt <- ggplot(metric_df, mapping = aes(x = !!sym(x), y = value)) +
+                geom_bar(stat = "identity") +
+                ylab(y_lab) +
+                theme(axis.text.y = element_text(size=15),
+                      axis.text.x = element_text(size=15, angle = 90, hjust = 1),
+                      axis.title.y = element_text(size=18),
+                      axis.title.x = element_blank(),
+                      panel.background = element_rect(fill = "#eeeeee", colour = NA),
+                      panel.grid.major = element_line(colour = "gray"), 
+                      panel.grid.minor = element_blank(),
+                      axis.line = element_line(colour = "black"),
+                      axis.line.y = element_line(colour = "black"),
+                      panel.border = element_rect(colour = "black",
+                                                  fill=NA, linewidth = 1))
+        if (x == "substudy"){
+                plt <- plt +
+                        scale_x_discrete(limits = c("brainSeq_pII",
+                                                    "GTEx",
+                                                    "LBP",
+                                                    "Mayo",
+                                                    "MSBB",
+                                                    "ROSMAP",
+                                                    "TBI"),
+                                         labels = c("brainSeq_pII" = "BrainSeq Ph. 2",
+                                                    "GTEx" = "GTEx",
+                                                    "LBP" = "LBP",
+                                                    "Mayo" = "Mayo",
+                                                    "MSBB" = "MSBB",
+                                                    "ROSMAP" = "ROSMAP",
+                                                    "TBI" = "TBI"))
+        }
+        return(plt)
+}
+
+# Given a metadata data.frame, the performance metrics of fractions of
+# the given data, and the name of a metric, plots the value of
+# the metric compared to the SD.
+plot_met_vs_sd <- function(mdat, metric_df, metric, label_size = 1,
+                           labls = T){
+        #mdat <- metdat_test
+        #metric <- "r2"
+        #metric_df <- metr_reg
+        metric_df <- metric_df[metric_df$metric == metric, ]
+        uniq_regs <- unique(metric_df$tissue)
+        plot_df <- data.frame()
+        for(i in seq_along(uniq_regs)){
+                reg <- uniq_regs[i]
+                sd_reg <- sd(mdat$ageDeath[mdat$tissue == reg])
+                reg_metr <- metric_df$value[metric_df$tissue == reg]
+                to_bind <- data.frame(region = reg,
+                                      sd = sd_reg,
+                                      metric = reg_metr)
+                plot_df <- rbind.data.frame(plot_df, to_bind)
+        }
+        if (metric == "r2"){
+                y_lab <- expression(R^2)
+        }else if (metric %in% c("mae", "mse", "rmse", "mape")){
+                y_lab <- toupper(metric)
+        }
+        x_lab <- "SD"
+        plt <- ggplot(plot_df, mapping = aes(x = sd, y = metric, label = region)) +
+                ylab(y_lab) +
+                xlab(x_lab) +
+                geom_point() +
+                theme(axis.text.y = element_text(size=15),
+                      axis.text.x = element_text(size=15),
+                      axis.title.y = element_text(size=18),
+                      axis.title.x = element_text(size=15),
+                      panel.background = element_rect(fill = "#eeeeee", colour = NA),
+                      panel.grid.major = element_line(colour = "gray"), 
+                      panel.grid.minor = element_blank(),
+                      axis.line = element_line(colour = "black"),
+                      axis.line.y = element_line(colour = "black"),
+                      panel.border = element_rect(colour = "black",
+                                                  fill=NA, linewidth = 1))
+        if (labls){
+                plt <- plt +
+                        geom_text_repel(max.overlaps = 100, size = label_size)
+        }
+        if (metric == "r2"){
+                plt <- plt +
+                        geom_hline(yintercept = 1)# +
+                        #annotate("text", x = -3, y = 1, label = "1", hjust = -0.1, size = 5)
+        }
+        return(plt)
+}
+
 # Load and parse data
 ################################################################################
 
@@ -552,6 +696,9 @@ train_metrics_df <- data.frame(
         )
 )
 write.csv(train_metrics_df, sprintf("%strain_metrics.csv", outDir))
+
+cv_metrics <- model@model$cross_validation_metrics
+print(cv_metrics)
 
 # Save coefficients
 coefs_table <- model@model$coefficients_table
@@ -869,6 +1016,98 @@ if (ext_substudy == "none" | !ext_substudy %in% metDat$substudy){
 
         ggsave(sprintf("%smodelAlph%sMAE.pdf", outDir, as.character(alph)),
                height = 5, width = 2)
+
+
+        do_barplot <- function(bxpltdf){
+                cv_summary <- dfr2_bxplt %>%
+                        filter(r2_type == "r2_cv") %>%
+                        summarise(
+                                mean_r2 = mean(value),
+                                sd_r2 = sd(value)
+                        )
+        }
+
+        # Do barplots of the same data
+        do_metric_barplot <- function(metric_bxplt_df, metric_point_df, metric = "r2"){
+                cv_summary <- metric_bxplt_df %>%
+                        filter(!!sym(sprintf("%s_type", metric)) == sprintf("%s_cv", metric)) %>%
+                        summarise(
+                                !!sym(sprintf("mean_%s", metric)) := mean(value),
+                                !!sym(sprintf("sd_%s", metric)) := sd(value)
+                        )
+                bar_df <- data.frame(
+                        r2_type = c(sprintf("%s_training", metric),
+                                    sprintf("%s_cv", metric),
+                                    sprintf("%s_test_leave_out", metric),
+                                    sprintf("%s_test_external", metric)),
+                        value = c(
+                                metric_point_df$value[dfr2_point$r2_type == "r2_training"],
+                                cv_summary[, sprintf("mean_%s", metric)],
+                                metric_point_df$value[metric_point_df[, sprintf("%s_type", metric)] == sprintf("%s_test_leave_out", metric)],
+                                metric_point_df$value[metric_point_df[, sprintf("%s_type", metric)] == sprintf("%s_test_external", metric)]
+                        ),
+                        ymin = c(NA, cv_summary[, sprintf("mean_%s", metric)] - cv_summary[, sprintf("sd_%s", metric)], NA, NA),
+                        ymax = c(NA, cv_summary[, sprintf("mean_%s", metric)] + cv_summary[, sprintf("sd_%s", metric)], NA, NA)
+                )
+                if (metric == "r2"){
+                        y_lab <- expression(R^2)
+                        y_lim <- c(floor(min(c(metric_bxplt_df$value,
+                                               metric_point_df$value) * 10)) / 10, 1)
+                }else if (metric == "mae"){
+                        y_lab <- "MAE"
+                        y_lim <- c(floor(min(c(metric_bxplt_df$value,
+                                               metric_point_df$value) * 10)) / 10,
+                                   ceiling(max(c(metric_bxplt_df$value,
+                                                 metric_point_df$value) * 10)) / 10)
+                }
+                plt <- ggplot(data = bar_df, mapping = aes(x = r2_type, y = value)) +
+                        geom_col(fill = "steelblue", width = 0.6) +
+                        geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.2, na.rm = TRUE) +
+                        geom_jitter(data = metric_bxplt_df,
+                                    aes(x = !!sym(sprintf("%s_type", metric)), y = value),
+                                    width = 0.2, alpha = 0.4, size = 1, inherit.aes = FALSE) +
+                        scale_x_discrete(
+                                limits = c(sprintf("%s_training", metric),
+                                           sprintf("%s_cv", metric),
+                                           sprintf("%s_test_leave_out", metric),
+                                           sprintf("%s_test_external", metric)),
+                                labels = setNames(
+                                        c("train set",
+                                          "cross-validation",
+                                          "internal test set (1/3 split)",
+                                          "external validation set"),
+                                        c(sprintf("%s_training", metric),
+                                          sprintf("%s_cv", metric),
+                                          sprintf("%s_test_leave_out", metric),
+                                          sprintf("%s_test_external", metric))
+                                )
+                        ) +
+                        ylab(y_lab) +
+                #ylim(c(floor(min(dfr2$value * 10)) / 10, 1)) +
+                        coord_cartesian(ylim = y_lim) +
+                theme(
+                        axis.text.y = element_text(size = 15),
+                        axis.text.x = element_text(size = 15, angle = 90, hjust = 1),
+                        axis.title.y = element_text(size = 18),
+                        axis.title.x = element_blank(),
+                        panel.background = element_blank(),
+                        panel.grid.major = element_line(colour = "gray"),
+                        panel.grid.minor = element_blank(),
+                        axis.line = element_line(colour = "black"),
+                        axis.line.y = element_line(colour = "black"),
+                        panel.border = element_rect(colour = "black", fill = NA, linewidth = 1)
+                )
+                return (plt)
+        }
+        
+        r2_barplot <- do_metric_barplot(dfr2_bxplt, dfr2_point, metric = "r2")
+        ggsave(sprintf("%smodelAlph%sR2_bplt.pdf", outDir, as.character(alph)),
+               height = 5, width = 2,
+               plot = r2_barplot)
+        mae_barplot <- do_metric_barplot(dfmae_bxplt, dfmae_point, metric = "mae")
+        ggsave(sprintf("%smodelAlph%sMAE_bplt.pdf", outDir, as.character(alph)),
+               height = 5, width = 2,
+               plot = mae_barplot)
 }
 
 # In a dataset, check performance in different subsets separately, specified
@@ -933,15 +1172,96 @@ write_table_fast(metrics_by_sex$metrics,
 # Change some names that are the same, but have different letters
 metDat$tissue <- gsub("frontal cortex (ba9)", "frontal cortex", metDat$tissue, fixed = T)
 metDat$tissue <- gsub("dorsolateral prefrontal cortex", "DLPFC", metDat$tissue)
+metDat$tissue <- gsub("HIPPO", "hippocampus", metDat$tissue, fixed = T)
+metDat$tissue <- gsub("hippocampus (hippocampal formation)",
+                      "hippocampus", metDat$tissue, fixed = T)
 
 metrics_by_region <- check_metrics_by_var(dat_ctrls_test,
-                                         model,
-                                         metDat,
-                                         "tissue",
-                                         save_plots = outDir)
+                                          model,
+                                          metDat,
+                                          "tissue",
+                                          save_plots = outDir)
 write_table_fast(metrics_by_region$metrics,
                  f = sprintf("%smetrics_by_region.csv",
                              outDir))
+
+# Plot the metrics
+################################################################################
+metDat_test <- metDat[match(make.names(rownames(dat_ctrls_test)),
+                            make.names(metDat$specimenID)), ]
+
+# By substudy
+ages_substudy_bxplt <- do_ages_bxplt(metDat_test, x = "substudy", jit_size = .1)
+r2_substudy_plt <- get_met_bplot(metrics_by_substudy$metrics,
+                                 metric = "r2",
+                                 x = "substudy")
+mae_substudy_plt <- get_met_bplot(metrics_by_substudy$metrics,
+                                  metric = "mae",
+                                  x = "substudy") +
+        coord_cartesian(ylim = c(0, 8.5))
+ages_substudy_bxplt <- ages_substudy_bxplt + theme(axis.text.x = element_blank(),
+                                 axis.ticks.x = element_blank())
+r2_substudy_plt <- r2_substudy_plt + theme(axis.text.x = element_blank(),
+                                           axis.ticks.x = element_blank()) +
+        coord_cartesian(ylim = c(-4, 1))
+
+# Stack all three vertically
+col1 <- ages_substudy_bxplt / r2_substudy_plt / mae_substudy_plt + 
+        plot_layout(heights = c(1.6, .8, .8))
+
+# By sex
+ages_sex_bxplt <- do_ages_bxplt(metDat_test, "sex", jit_size = .1)
+r2_sex_plt <- get_met_bplot(metrics_by_sex$metrics, metric = "r2", x = "sex") +
+        coord_cartesian(ylim = c(-4, 1))
+mae_sex_plt <- get_met_bplot(metrics_by_sex$metrics, metric = "mae", x = "sex") +
+        coord_cartesian(ylim = c(0, 8.5))
+
+ages_sex_bxplt <- ages_sex_bxplt + theme(axis.title.y = element_blank(),
+                                         axis.ticks.y = element_blank(),
+                                         axis.text.y = element_blank(),
+                                         axis.text.x = element_blank(),
+                                         axis.ticks.x = element_blank())
+r2_sex_plt <- r2_sex_plt + theme(axis.title.y = element_blank(),
+                                 axis.ticks.y = element_blank(),
+                                 axis.text.y = element_blank(),
+                                 axis.text.x = element_blank(),
+                                 axis.ticks.x = element_blank())
+mae_sex_plt <- mae_sex_plt + theme(axis.title.y = element_blank(),
+                                   axis.ticks.y = element_blank(),
+                                   axis.text.y = element_blank())
+
+col2 <- ages_sex_bxplt / r2_sex_plt / mae_sex_plt + 
+        plot_layout(heights = c(1.6, 0.8, 0.8))
+
+combined_all <- (col1 | col2) + plot_layout(widths = c(1, .3))
+
+ggsave(filename = sprintf("%ssubstudy_sex_test_metrics.pdf", outDir),
+       plot = combined_all,
+       height = 6, width = 4)
+
+# By region
+reg_vs_r2_plot <- plot_met_vs_sd(metDat_test,
+                                 metrics_by_region$metrics,
+                                 metric = "r2",
+                                 label_size = 2.5,
+                                 labls = F)
+
+reg_vs_mae_plot <- plot_met_vs_sd(metDat_test,
+                                  metrics_by_region$metrics,
+                                  metric = "mae",
+                                  label_size = 2.5,
+                                  labls = F)
+
+reg_vs_r2_plot <- reg_vs_r2_plot + theme(axis.title.x = element_blank(),
+                                         axis.text.x = element_blank(),
+                                         axis.ticks.x = element_blank())
+reg_plot_comb <- reg_vs_r2_plot / reg_vs_mae_plot + 
+        plot_layout(heights = c(1, 1))
+
+ggsave(filename = sprintf("%sreg_metrics.pdf", outDir),
+       plot = reg_plot_comb,
+       height = 6, width = 3.5)
+
 # Assessment in neurodegenerated individuals
 ################################################################################
 
