@@ -30,4 +30,9 @@ Rscript brainSeq_pI_parsing.R
 # 7. Pre-processing, integration and annotation of AgeAnno brain scRNA-seq data
 Rscript ageAnno_preproc.R
 
-# 8.
+# 8. Integrate all clinical samples into a single file and pre-process
+# 8.1 Add brainSeq Phase II, AgeAnno and perturbation compilation to merged dataset
+Rscript merge_clinical.R
+
+# 8.2 Filter clinical dataset
+Rscript filt_dataset.R

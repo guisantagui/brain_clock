@@ -102,7 +102,7 @@ Rscript tpms_tissOutFilt.R $norm_input \
     --outDir $outDir
 
 # Create objects necessary for batch removal steps
-Rscript create_batchRemObjkts.R $noCerebFile --metDat $metDat --outDir $outDir
+Rscript create_batchRemObjkts.R $noCerebFile --metDat $metDat --whatData "clin" --outDir $outDir
 
 # Run SVA with no covariates and with covariates, and ComBat
 mod_onlyAge=$(echo "$noCerebFile" | sed 's/.csv$//')

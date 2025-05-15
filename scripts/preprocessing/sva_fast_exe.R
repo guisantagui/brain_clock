@@ -10,16 +10,16 @@ if(!require(BiocManager, quietly = T)){
 if(!require(argparser, quietly = T)){
         install.packages("argparser", repos='http://cran.us.r-project.org')
 }
-library(argparser)
 if(!require("limma", quietly = T)){
         BiocManager::install("limma", update = F)
 }
-library(limma)
 if(!require("SmartSVA", quietly = T)){
         install.packages("SmartSVA", repos='http://cran.us.r-project.org')
 }
-library(SmartSVA)
 if(!require(sva, quietly = T)) BiocManager::install("sva", update = F)
+library(argparser)
+library(limma)
+library(SmartSVA)
 library(sva)
 
 
@@ -92,6 +92,11 @@ dat <- readCsvFast(datFile)
 # Run SVA
 ################################################################################
 print("Running SVA...")
+# Filter edata to keep only what's in mod (in case it was subsampled)
+dat_rnames <- rownames(dat)
+dat_notSubs <- dat[!make.names(rownames(dat)) %in% make.names(rownames(mod)), ]
+dat <- dat[match(make.names(rownames(mod)),
+                 make.names(rownames(dat))), ]
 edata <- t(dat)
 
 print("Computing the number of SVs...")
@@ -137,13 +142,34 @@ print(sprintf("%s saved at %s",
 # Remove effect of the surrogate variables from the input matrix and save it
 ################################################################################
 
+if (nrow(dat_notSubs) > 0){
+        print("Fitting linear model to infer SVs in samples that were not subsampled...")
+        sv_mat <- svobj$sv
+        colnames(sv_mat) <- paste("SV", 1:ncol(sv_mat), sep = "_")
+        surrogate_model <- lm(sv_mat ~ ., data = as.data.frame(dat))
+        saveRDS(surrogate_model, file = sprintf("%ssv_lmod.rds", outDir))
+        print(sprintf("sv_lmod.rds saved at %s", outDir))
+        print("Inferring SVs in not-subsampled samples...")
+        sv_rest <- predict(surrogate_model, dat_notSubs)
+        if (is.vector(sv_rest)){
+                sv_rest <- data.frame(SV_1 = sv_rest)
+        }
+        # Merge SV matrices and data matrices and reorder row names
+        sv_all <- rbind.data.frame(sv_mat, sv_rest)
+        sv_all <- sv_all[match(make.names(dat_rnames), make.names(rownames(sv_all))), , drop = FALSE]
+        dat <- rbind.data.frame(dat, dat_notSubs)
+        dat <- dat[match(make.names(dat_rnames), make.names(rownames(dat))), ]
+}else{
+        sv_all <- svobj$sv
+}
+
 if(saveSVrem){
         # Create new model matrix with only age, as it is the only covariate we want to
         # preserve.
-        mod4adj <- model.matrix(~age_death,
-                                data = data.frame(age_death = mod[, "age_death"]))
+        #mod4adj <- model.matrix(~age_death,
+        #                        data = data.frame(age_death = mod[, "age_death"]))
 
-        edata_adj <- removeBatchEffect(edata, covariates = svobj$sv)
+        edata_adj <- removeBatchEffect(t(dat), covariates = sv_all)
 
         edata_adj <- t(edata_adj)
 

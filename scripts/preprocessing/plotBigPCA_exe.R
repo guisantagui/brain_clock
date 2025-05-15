@@ -272,6 +272,17 @@ ggsave(plot = pca_exper,
                           outDir,
                           outName))
 
+pca_exper <- pcBiplot(bigPCA,
+                      x = x,
+                      y = y,
+                      colBy = "batch_lib",
+                      biPlot = F)
+
+ggsave(plot = pca_exper,
+       filename = sprintf("%s%s_batch_lib.pdf",
+                          outDir,
+                          outName))
+
 # Do the PCA multi-plots and save them
 ################################################################################
 pcaMult_subst <- doPCAMultiPlot(bigPCA,
@@ -342,5 +353,16 @@ pcaMult_exper <- doPCAMultiPlot(bigPCA,
 
 ggsave(plot = pcaMult_exper,
        filename = sprintf("%s%s_mult_exper.pdf",
+                          outDir,
+                          outName))
+
+pcaMult_exper <- doPCAMultiPlot(bigPCA,
+                                nComps = 5,
+                                varPlotFilt = NULL,
+                                biPlot = F,
+                                colBy = "batch_lib")
+
+ggsave(plot = pcaMult_exper,
+       filename = sprintf("%s%s_batch_lib.pdf",
                           outDir,
                           outName))

@@ -177,6 +177,8 @@ print(sprintf("Running univariate tests of %s (%s)...",
 uniqPerts <- unique(paste(metDat$perturbation,
                           metDat$tissue, sep = "_"))
 
+uniqPerts <- uniqPerts[!grepl("DMSO", uniqPerts)]
+
 metDat$pert_cell <- paste(metDat$perturbation,
                           metDat$tissue, sep = "_")
 
@@ -192,6 +194,7 @@ pert_stats_DF <- data.frame(matrix(nrow = 0,
 
 pb = txtProgressBar(min = 0, max = length(uniqPerts), initial = 0, style = 3)
 for(i in seq_along(uniqPerts)){
+        #i <- 200
         setTxtProgressBar(pb, i)
         p <- uniqPerts[i]
         metDat_p <- metDat[metDat$pert_cell == p & metDat$perturbation != "none", ]
@@ -199,7 +202,17 @@ for(i in seq_along(uniqPerts)){
         cTypeVec <- c()
         for(j in seq_along(cTypes)){
                 cTyp <- cTypes[j]
-                ctrls_IDs <- metDat$specimenID[metDat$tissue == cTyp & metDat$exper_group == "ctrl"]
+                # If it's not lincs, do comparison by same accession. If it's, do comparison
+                # taking timempoints into account.
+
+                if (all(metDat_p$timepoint == "")){
+                        p_batch <- unique(metDat_p$batch_rna)
+                        ctrls_IDs <- metDat$specimenID[metDat$tissue == cTyp & metDat$exper_group == "ctrl" & metDat$batch_rna == p_batch]
+                }else{
+                        timepoint <- unique(metDat_p$timepoint)
+                        ctrls_IDs <- metDat$specimenID[metDat$tissue == cTyp & metDat$exper_group == "ctrl" & metDat$timepoint == timepoint]
+                         #ctrls_IDs <- metDat$specimenID[metDat$tissue == cTyp & metDat$exper_group == "ctrl"]
+                }
                 exper_IDs <- metDat_p$specimenID[metDat_p$tissue == cTyp & metDat_p$exper_group == "expr"]
                 ctrls_IDs <- make.names(ctrls_IDs)
                 exper_IDs <- make.names(exper_IDs)
@@ -228,11 +241,22 @@ for(i in seq_along(uniqPerts)){
 }
 close(pb)
 
-# Adjust p-values
-pert_stats_DF$chron_age_wilcox_pValAdj <- p.adjust(pert_stats_DF$chron_age_wilcox_pVal,
-                                                   method = "BH")
-pert_stats_DF$chron_age_tTest_pValAdj <- p.adjust(pert_stats_DF$chron_age_tTest_pVal,
-                                                  method = "BH")
+# Adjust p-values per cell type
+pert_stats_DF$chron_age_wilcox_pValAdj <- NA
+pert_stats_DF$chron_age_tTest_pValAdj <- NA
+
+uniq_cTypes <- unique(pert_stats_DF$cell_type)
+for (cTyp in uniq_cTypes){
+        pert_stats_DF$chron_age_wilcox_pValAdj[pert_stats_DF$cell_type == cTyp] <- p.adjust(pert_stats_DF$chron_age_wilcox_pVal[pert_stats_DF$cell_type == cTyp],
+                                                                                            method = "BH")
+        
+        pert_stats_DF$chron_age_tTest_pValAdj[pert_stats_DF$cell_type == cTyp] <- p.adjust(pert_stats_DF$chron_age_tTest_pVal[pert_stats_DF$cell_type == cTyp],
+                                                                                           method = "BH")
+}
+#pert_stats_DF$chron_age_wilcox_pValAdj <- p.adjust(pert_stats_DF$chron_age_wilcox_pVal,
+#                                                   method = "BH")
+#pert_stats_DF$chron_age_tTest_pValAdj <- p.adjust(pert_stats_DF$chron_age_tTest_pVal,
+#                                                  method = "BH")
 
 
 # Save result
@@ -246,11 +270,13 @@ print(sprintf("%s saved at %s", basename(outName), dirname(outName)))
 npc_neu_pertPlt_vert <- ggarrange(plotPerts(pert_stats_DF,
                                             "t_test",
                                             "NPC",
-                                            topN = 10),
+                                            topN = 10,
+                                            rem_dose = T),
                                   plotPerts(pert_stats_DF,
                                             "t_test",
                                             "NEU",
-                                            topN = 10),
+                                            topN = 10,
+                                            rem_dose = T),
                                   common.legend = T,
                                   legend = "bottom",
                                   nrow = 2)
@@ -262,12 +288,14 @@ npc_neu_pertPlt_delta_vert <- ggarrange(plotPerts(pert_stats_DF,
                                                   "t_test",
                                                   "NPC",
                                                   topN = 10,
-                                                  y_var = "delta"),
+                                                  y_var = "delta",
+                                                  rem_dose = T),
                                         plotPerts(pert_stats_DF,
                                                   "t_test",
                                                   "NEU",
                                                   topN = 10,
-                                                  y_var = "delta"),
+                                                  y_var = "delta",
+                                                  rem_dose = T),
                                         common.legend = T,
                                         legend = "bottom",
                                         nrow = 2)

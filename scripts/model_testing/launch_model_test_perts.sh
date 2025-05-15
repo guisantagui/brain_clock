@@ -24,6 +24,8 @@ conda activate r-4.3.1
 # Variables for the pipeline
 ########################################################################################################################
 datFile="../../results/parsed/merged_perts/merged_perts_exprsn_qnorm.csv"
+#datFile="../../results/preproc/perts_preproc_subsamp/merged_perts_exprsn_qnorm_svaMod_svaAdj.csv"
+#datFile="/home/users/gsantamaria/projects/brain_clock/results/preproc/perts_preproc_subsamp/merged_perts_exprsn_log2111_qnorm_svaMod_svaAdj_clinRef_qnorm.csv"
 modDir="../../results/models/secnd_round/mod_alpha1/"
 metDat="../../results/parsed/merged_perts/merged_perts_metdat.csv"
 alpha=0.05
@@ -32,7 +34,7 @@ lincs_drugs="/home/users/gsantamaria/projects/brain_clock/data/perturbation/linc
 batchSize=4000
 whatSampsTest="perturbation"
 mem="50G"
-outDir="../../results/model_test_perts/"
+outDir="../../results/model_test_perts_noRemWeirdNPCs/"
 
 # Run the simulations
 ########################################################################################################################

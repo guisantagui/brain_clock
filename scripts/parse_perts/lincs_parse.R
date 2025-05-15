@@ -353,6 +353,10 @@ if(isCtl){
 }else{
         metDat$group <- rep("expr", nrow(metDat))
 }
+metDat$rna_plate <- sapply(lincs@cdesc$id,
+                           function(x) paste(strsplit(x,
+                                                      split = "_")[[1]][1:4],
+                                             collapse = "_"))
 
 writeCsvFst(lincs_mat, outExpName)
 writeCsvFst(metDat, outMetDatName)

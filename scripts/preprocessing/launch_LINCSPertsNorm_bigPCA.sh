@@ -10,19 +10,21 @@
 #SBATCH -c 8
 #SBATCH --time=02-00:00:00
 #Define sdout path
-#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/output_lincsPrtsPCA.txt
+#SBATCH --output=/home/users/gsantamaria/projects/brain_clock/scripts/preprocessing/output_lincsPrtsPCA.txt
 #Define sderr path
-#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/error_lincsPrtsPCA.txt
+#SBATCH --error=/home/users/gsantamaria/projects/brain_clock/scripts/preprocessing/error_lincsPrtsPCA.txt
 #Define the queue (Quality Of Service) to which the task shall be submitted to
 #SBATCH -p bigmem
 #SBATCH --qos=normal
 
 conda activate r-4.3.1
 
-dat="../../results/parsed/merged_perts/merged_perts_counts_quantNorm.csv"
+dat="../../results/parsed/merged_perts/merged_perts_exprsn_qnorm.csv"
 metDat="../../results/parsed/merged_perts/merged_perts_metdat.csv"
 outDir="../../results/preproc/lincs_pert_norm_pca/"
 nPCs=20
+
+mkdir -p $outDir
 
 Rscript bigPCA_exe.R $dat --nPCs $nPCs --stand --outDir $outDir
 pcaFile=$(echo "$dat" | sed 's/.csv$//')

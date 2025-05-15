@@ -27,7 +27,7 @@ cellType="NPC"
 
 
 #gctxFile="/mnt/lscratch/users/gsantamaria/test_large_files/ctl_predicted_RNAseq_profiles.gctx"
-outDir="/mnt/lscratch/users/gsantamaria/test_large_files/parsed_mats/"
+outDir="/mnt/lscratch/users/gsantamaria/test_large_files/NPC/parsed_mats/"
 
 # Run
 ########################################################################################################################

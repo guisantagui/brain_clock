@@ -115,6 +115,11 @@ metdat <- metdat[match(make.names(rownames(counts)),
 # Save
 ################################################################################
 
+# Genes in the final dataset
+all_genes <- colnames(counts)
+all_genes <- data.frame(ensembl_gene_id = all_genes)
+write_table_fast(all_genes, f = sprintf("%sall_genes.csv", outDir))
+
 # Processed counts file
 write_table_fast(counts, outNameCounts)
 

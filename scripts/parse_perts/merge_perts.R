@@ -116,6 +116,9 @@ df2AddPerts <- data.frame(matrix(nrow = nrow(metDat_perts),
                                                  cols2Add_metDatPerts)))
 metDat_perts <- cbind.data.frame(metDat_perts, df2AddPerts)
 
+# Add batch info for lincs metadata
+metDat_lincs$batch_lib <- gsub("\\_.*", "", metDat_lincs$specimenID)
+
 # Merge metadata dataframes
 metDat_lincsPert <- rbind.data.frame(metDat_perts,
                                      metDat_lincs)
