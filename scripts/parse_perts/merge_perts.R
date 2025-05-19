@@ -81,6 +81,10 @@ commGenes <- intersect(colnames(lincs), colnames(perts))
 lincsPerts <- rbind.data.frame(lincs[, commGenes],
                                perts[, commGenes])
 
+# Save common genes as a csv file
+commGenes_df <- data.frame(gene = commGenes)
+write_table_fast(commGenes_df, f = sprintf("%slincs_genes.csv", outDir))
+
 # Merge metadata files
 ################################################################################
 metDat_lincs$diagn_4BrainClck <- rep("perturbations",

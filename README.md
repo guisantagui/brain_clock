@@ -11,8 +11,8 @@ This repository contains the scripts used for preprocessing the transcriptomics 
 
 ## Preprocessing the data and training the model
 To train the model and reproduce our analyses, the following steps need to be performed in this exact order:
-### 1. Clinical data curation and parsing
-In this module, brain bulk RNA-seq datasets from several sources and their metadata are manually curated in order to homogenize the gene nomenclature and metadata variables, and are merged into the `merged_counts.csv` and `merged_metdat.csv` files the next step uses as input. To perform this step run the following commands:
+### 1. Postmortem data curation and parsing
+In this module, postmortem brain bulk RNA-seq datasets from several sources and their metadata are manually curated in order to homogenize the gene nomenclature and metadata variables, and are merged into the `merged_counts.csv` and `merged_metdat.csv` files the next step uses as input. To perform this step run the following commands:
 ```bash
 cd scripts/parse_clinc
 sbatch dataset_parsing.sh
@@ -20,7 +20,7 @@ cd ../..
 ```
 More information on the curation and parsing process can be found in [`scripts/parse_clinc`](scripts/parse_clinc).
 ### 2. First training round
-As mentioned in the **Methods** section of our paper, the training of the model was performed in two steps:
+As mentioned in the **Experimental** section of our paper, the training of the model was performed in two steps:
 1. A first round performed on a preprocessed matrix with all the genes intersected with the integrated datasets.
 2. A second round performed on a matrix that was filtered to keep the genes that were selected in the first fitting round before preprocessing was performed.
 Therefore, a fitting round was divided in preprocessing and fittinf. 
