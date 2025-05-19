@@ -16,6 +16,8 @@ data/dataset_parsing/*
 !data/dataset_parsing/tbi_data_files.csv
 !data/perturbation/
 data/perturbation/*
+!data/perturbation/Sascha_metadata.csv
+!data/perturbation/javier_metadata.csv
 !data/perturbation/lincs/
 data/perturbation/lincs/*
 !data/perturbation/lincs/lincs_genes.csv
