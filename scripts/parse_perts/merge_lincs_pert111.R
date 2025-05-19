@@ -40,6 +40,7 @@ metDatLincs_MIC_f <- "/mnt/lscratch/users/gsantamaria/test_large_files/MICROGLIA
 
 #counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_counts_log2_qnorm.csv"
 counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/preproc/test_no_lincs/merged_counts_log2_qnorm_noCerebell_onlyAge_svaAdj.csv"
+counts_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/preproc/second_round/merged_counts_mod_alpha1_coefs_log2_qnorm_noCerebell_onlyAge_svaAdj.csv"
 metDat_clin_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/merged_metdat.csv"
 train_test_f <- "/home/users/gsantamaria/projects/brain_clock/results/parsed/merged/train_test.csv"
 
@@ -79,6 +80,10 @@ metDat_lincs <- rbind.data.frame(metDat_lincs_NPC,
                                  #metDat_lincs_MIC,
                                  metDat_lincs_NEU)
 
+# Test: try to include each NPC subtype
+#metDat_lincs$cell <- sapply(metDat_lincs$rna_plate,
+#                            function(x) strsplit(x, split = "_")[[1]][2])
+
 #lincs <- rbind.data.frame(lincs_NPC,
 #                          lincs_NEU,
 #                          lincs_MIC)
@@ -93,17 +98,10 @@ metDat_lincs <- rbind.data.frame(metDat_lincs_NPC,
 #                                                                   function(x) strsplit(x, split = "_")[[1]][2]) != "NPC"), ]
 
 # There are other types of controls than DMSO. Keep only DMSO
-#metDat_lincs <- metDat_lincs[!(metDat_lincs$group == "ctrl" & !grepl("DMSO", metDat_lincs$pertname)), ]
+metDat_lincs <- metDat_lincs[!(metDat_lincs$group == "ctrl" & !grepl("DMSO", metDat_lincs$pertname)), ]
 
 # Keep in expression only what was retained in the metadata
-#lincs <- lincs[make.names(rownames(lincs)) %in% make.names(metDat_lincs$specimenID), ]
-
-#lincs <- rbind.data.frame(lincs_NPC,
-#                          lincs_NEU,
-#                          lincs_MIC)
-#metDat_lincs <- rbind.data.frame(metDat_lincs_NPC,
-#                                 metDat_lincs_NEU,
-#                                 metDat_lincs_MIC)
+lincs <- lincs[make.names(rownames(lincs)) %in% make.names(metDat_lincs$specimenID), ]
 
 # Merge expression files
 ################################################################################
@@ -113,7 +111,7 @@ commGenes <- intersect(colnames(lincs), colnames(perts))
 lincsPerts <- rbind.data.frame(lincs[, commGenes],
                                perts[, commGenes])
 
-# Save common genes as a csv vile
+# Save common genes as a csv file
 commGenes_df <- data.frame(gene = commGenes)
 write_table_fast(commGenes_df, f = sprintf("%slincs_genes.csv", outDir))
 

@@ -34,7 +34,7 @@ lincs_drugs="/home/users/gsantamaria/projects/brain_clock/data/perturbation/linc
 batchSize=4000
 whatSampsTest="perturbation"
 mem="50G"
-outDir="../../results/model_test_perts_noRemWeirdNPCs/"
+outDir="../../results/model_test_perts_noRemWeirdNPCsOnlyDMSO_onSecndRndDist/"
 
 # Run the simulations
 ########################################################################################################################

@@ -242,7 +242,8 @@ getModPredAgeVsBraak <- function(df,
                                  plotEq = T,
                                  accountChronAge = F,
                                  xPos = NULL,
-                                 yPos = NULL){
+                                 yPos = NULL,
+                                 remChronAge = F){
         #df <- dfBraak
         #age_int <- NULL
         if(!is.null(age_int)){
@@ -252,7 +253,14 @@ getModPredAgeVsBraak <- function(df,
         df$braak <- as.numeric(df$braak)
         
         if(accountChronAge){
-                lMod <- lm(pred_age ~ braak + age_death, df)
+                if (remChronAge){
+                        age_adjust_model <- lm(pred_age ~ age_death, data = df)
+                        df$pred_age <- residuals(age_adjust_model)
+                        lMod <- lm(pred_age ~ braak, df)
+                }else{
+                        lMod <- lm(pred_age ~ braak + age_death, df)
+                }
+                
         }else{
                 lMod <- lm(pred_age ~ braak, df)
         }
@@ -284,10 +292,15 @@ getModPredAgeVsBraak <- function(df,
                 
         }
         if(doPlot){
+                if (remChronAge){
+                        y_lab <- "Chron. adj. transc. age"
+                }else{
+                        y_lab <- "transcriptional age"
+                }
                 plt <- ggplot(data = df, mapping = aes(x = braak, y = pred_age)) +
                         geom_point() +
                         geom_smooth(method = "lm", se = FALSE) +
-                        labs(x = "Braak index", y = "predicted age") +
+                        labs(x = "Braak index", y = y_lab) +
                         theme(title = element_text(size = 20),
                               axis.text.y = element_text(size=15),
                               axis.text.x = element_text(size=15),
@@ -707,7 +720,6 @@ isNonZero <- coefs_table$coefficients != 0
 
 nonZeroCoefs <- coefs_table[isNonZero, ]
 nonZeroCoefs <- as.data.frame(nonZeroCoefs)
-nonZeroCoefs <- nonZeroCoefs[nonZeroCoefs$names != "Intercept", ]
 
 colnames(nonZeroCoefs) <- gsub("names",
                                "ensembl_gene_id",
@@ -718,11 +730,21 @@ rownames(nonZeroCoefs) <- nonZeroCoefs$ensembl_gene_id
 sprintf("%smod_alpha%s", outDir, alph)
 outNameCoefs <- sprintf("%smod_alpha%s_coefs.csv", outDir, alph)
 
+coefs_wIntercept <- nonZeroCoefs
+nonZeroCoefs <- nonZeroCoefs[nonZeroCoefs$ensembl_gene_id != "Intercept", ]
+
 write_table_fast(nonZeroCoefs, outNameCoefs)
 
 print(sprintf("%s saved in %s.",
               basename(outNameCoefs),
               dirname(outNameCoefs)))
+
+outNameCoefsIntrcpt <- sprintf("%smod_alpha%s_coefs_wIntercpt.csv", outDir, alph)
+write_table_fast(coefs_wIntercept, outNameCoefsIntrcpt)
+
+print(sprintf("%s saved in %s.",
+              basename(outNameCoefsIntrcpt),
+              dirname(outNameCoefsIntrcpt)))
 
 # Model evaluation in test dataset
 ################################################################################
@@ -1566,7 +1588,8 @@ nd_lmPlt_all_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
                                                                    outDir, as.character(alph)),
                                                  savePlt = T,
                                                  plotEq = T,
-                                                 accountChronAge = T)
+                                                 accountChronAge = T,
+                                                 remChronAge = T)
 
 ggsave(sprintf("%sND_lmFit_alph%s_all_accChronAge.pdf",
                outDir, as.character(alph)),
@@ -1580,28 +1603,32 @@ nd_lmPlt_60_70_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
                                                                      outDir,
                                                                      as.character(alph)),
                                                    plotEq = T,
-                                                   accountChronAge = T)
+                                                   accountChronAge = T,
+                                                   remChronAge = T)
 nd_lmPlt_70_80_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
                                                    age_int = "70_80",
                                                    outName = sprintf("%sND_lmFit_alph%s_70_80_accChronAge.txt",
                                                                      outDir,
                                                                      as.character(alph)),
                                                    plotEq = T,
-                                                   accountChronAge = T)
+                                                   accountChronAge = T,
+                                                   remChronAge = T)
 nd_lmPlt_80_90_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
                                                    age_int = "80_90",
                                                    outName = sprintf("%sND_lmFit_alph%s_80_90_accChronAge.txt",
                                                                      outDir,
                                                                      as.character(alph)),
                                                    plotEq = T,
-                                                   accountChronAge = T)
+                                                   accountChronAge = T,
+                                                   remChronAge = T)
 nd_lmPlt_90_100_accCrhonAge <- getModPredAgeVsBraak(dfBraak,
                                                     age_int = "90_100",
                                                     outName = sprintf("%sND_lmFit_alph%s_90_100_accChronAge.txt",
                                                                       outDir,
                                                                       as.character(alph)),
                                                     plotEq = T,
-                                                    accountChronAge = T)
+                                                    accountChronAge = T,
+                                                    remChronAge = T)
 
 
 ggarrange(plotlist = list(nd_lmPlt_60_70_accCrhonAge,

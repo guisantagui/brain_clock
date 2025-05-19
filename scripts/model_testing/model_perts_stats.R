@@ -138,7 +138,9 @@ plotPerts <- function(pertDF, what_stats, cell_type, alph = 0.05,
                 geom_hline(yintercept = 0) +
                 geom_point(size = point_size) +
                 scale_color_manual(values = c("red", "darkgreen")) +
-                geom_text_repel(max.overlaps = 100) +
+                geom_text_repel(data = subset(pertDF, !is.na(labs)),
+                                aes(label = labs),
+                                max.overlaps = 100) +
                 labs(x = "perturbations", y = y_label) +
                 scale_x_discrete(expand = expansion(mult = c(0.01, 0.01))) +
                 theme(title = element_text(size = 20),
@@ -287,15 +289,19 @@ ggsave(filename = sprintf("%s/pert_stats_plot.pdf", dirname(pertFile)),
 npc_neu_pertPlt_delta_vert <- ggarrange(plotPerts(pert_stats_DF,
                                                   "t_test",
                                                   "NPC",
-                                                  topN = 10,
-                                                  y_var = "delta",
-                                                  rem_dose = T),
+                                                  topN = NULL,
+                                                  thrshld_labs_low = -24,
+                                                  thrshld_labs_high = 31.5,
+                                                  rem_dose = T,
+                                                  y_var = "delta"),
                                         plotPerts(pert_stats_DF,
                                                   "t_test",
                                                   "NEU",
-                                                  topN = 10,
-                                                  y_var = "delta",
-                                                  rem_dose = T),
+                                                  topN = NULL,
+                                                  thrshld_labs_low = -8.7,
+                                                  thrshld_labs_high = 19.5,
+                                                  rem_dose = T,
+                                                  y_var = "delta"),
                                         common.legend = T,
                                         legend = "bottom",
                                         nrow = 2)

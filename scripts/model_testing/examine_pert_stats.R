@@ -161,6 +161,8 @@ for(i in seq_along(uniq_cTypes)){
         pert_stats_sign_cTyp <- pert_stats_sign[pert_stats_sign$cell_type == cTyp, ]
         # Order by delta to get unique perts ranked by rejuvenating potential
         pert_stats_sign_cTyp <- pert_stats_sign_cTyp[order(pert_stats_sign_cTyp$chron_age_delta), ]
+        write_table_fast(pert_stats_sign_cTyp, f = sprintf("%s/%s_sign_perts.csv", outDir, cTyp))
+        print(sprintf("%s_sign_perts.csv saved at %s", cTyp, outDir))
         uniq_perts_cell <- unique(gsub("\\_.*", "", pert_stats_sign_cTyp$perturbation))
         mean_delta <- sapply(uniq_perts_cell,
                              function(x) mean(pert_stats_sign_cTyp$chron_age_delta[grep(x,
