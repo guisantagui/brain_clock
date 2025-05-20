@@ -58,7 +58,7 @@ mod_gene_info <- getBM(attributes = c("ensembl_gene_id",
                    mart = human)
 
 # This has 2 entrez ids, so remove the second one.
-mod_gene_info <- gene_info[gene_info$entrezgene_id != 107080644, ]
+mod_gene_info <- mod_gene_info[mod_gene_info$entrezgene_id != 107080644, ]
 
 mod_gene_info <- mod_gene_info[match(mod_coef$names[2:nrow(mod_coef)],
                                      mod_gene_info$ensembl_gene_id), ]
@@ -72,7 +72,7 @@ bg_genes <- coefs_first$ensembl_gene_id
 ######################################################################
 
 train_quant_means <- readRDS(train_target_f)
-
+train_quant_means <- data.frame(trainMeans = train_quant_means)
 
 # Save the sysdata.rda file
 ######################################################################
