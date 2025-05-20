@@ -23,6 +23,7 @@ sbatch fitModel_second_round.sh
 The results of the training pipelines will be written in:
 - `./results/models/first_round/` for the first training round.
 - `./results/models/second_round/` for the second training round.
+
 Each output directory contains:
 - Diagnostic plots.
 - Performance metrics.
